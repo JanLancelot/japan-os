@@ -43,7 +43,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   ];
 
   const fonts: { id: FontFamily; label: string; style: string }[] = [
-    { id: "serif", label: "Mincho (Serif)", style: "font-serif" },
+    { id: "serif", label: "Hiragino Mincho", style: "font-serif" },
     { id: "sans", label: "Gothic (Sans)", style: "font-sans" },
     { id: "rounded", label: "Rounded (Casual)", style: "font-mono" }, // Fallback to mono style, but styled separately in css
   ];

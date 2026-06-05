@@ -36,7 +36,7 @@ export const Reader: React.FC<ReaderProps> = ({ history, settings, onSpeak }) =>
   const getFontFamilyClass = () => {
     switch (settings.fontFamily) {
       case "serif":
-        return 'font-serif font-["Yu_Mincho",YuMincho,"Hiragino_Mincho_ProN","MS_Mincho","Noto_Serif_JP",serif]';
+        return 'font-serif font-["Hiragino Mincho ProN","Yu_Mincho",YuMincho,"Hiragino_Mincho_ProN","MS_Mincho","Noto_Serif_JP",serif]';
       case "rounded":
         return 'font-mono font-["Hiragino_Maru_Gothic_ProN",Meiryo,"Kosugi_Maru",monospace]';
       case "sans":
