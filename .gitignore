@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dictionary files
+/public/dictionaries/extracted/
+/public/dictionaries/jitendex.db
+

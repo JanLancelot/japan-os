@@ -52,9 +52,20 @@ export function useSettings() {
     });
   };
 
+  // Reset settings to defaults
+  const resetSettings = () => {
+    setSettings(DEFAULT_SETTINGS);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
+    } catch (e) {
+      console.error("Failed to reset settings in localStorage", e);
+    }
+  };
+
   return {
     settings,
     updateSettings,
+    resetSettings,
     isLoaded,
   };
 }

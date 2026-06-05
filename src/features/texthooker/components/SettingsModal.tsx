@@ -9,6 +9,7 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: ReaderSettings;
   onUpdate: (settings: Partial<ReaderSettings>) => void;
+  onReset: () => void;
   voices: SpeechSynthesisVoice[];
   status: WSStatus;
   url: string;
@@ -23,6 +24,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   settings,
   onUpdate,
+  onReset,
   voices,
   status,
   url,
@@ -324,7 +326,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-neutral-50 dark:bg-neutral-900/60 border-t border-neutral-100 dark:border-neutral-800/80 flex justify-end">
+        <div className="px-6 py-4 bg-neutral-50 dark:bg-neutral-900/60 border-t border-neutral-100 dark:border-neutral-800/80 flex justify-between items-center">
+          <button
+            onClick={onReset}
+            className="px-4 py-2 text-xs font-semibold text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition cursor-pointer"
+          >
+            Reset to Default
+          </button>
           <button
             onClick={onClose}
             className="px-5 py-2 font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700 transition cursor-pointer"

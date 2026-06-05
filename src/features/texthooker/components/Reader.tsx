@@ -58,6 +58,34 @@ export const Reader: React.FC<ReaderProps> = ({ history, settings, onSpeak }) =>
     }
   };
 
+  const getThemeTextClass = (isFocused: boolean) => {
+    if (isFocused) {
+      switch (settings.theme) {
+        case "light":
+          return "text-zinc-900 opacity-100 font-medium";
+        case "sepia":
+          return "text-[#433422] opacity-100 font-medium";
+        case "dark":
+          return "text-zinc-100 opacity-100 font-medium";
+        case "midnight":
+        default:
+          return "text-neutral-100 opacity-100 font-medium";
+      }
+    } else {
+      switch (settings.theme) {
+        case "light":
+          return "text-zinc-400 opacity-30 hover:opacity-85 hover:text-zinc-700 transition-all duration-200";
+        case "sepia":
+          return "text-[#433422] opacity-30 hover:opacity-85 transition-all duration-200";
+        case "dark":
+          return "text-zinc-500 opacity-45 hover:opacity-90 hover:text-zinc-300 transition-all duration-200";
+        case "midnight":
+        default:
+          return "text-neutral-500 opacity-45 hover:opacity-90 hover:text-neutral-300 transition-all duration-200";
+      }
+    }
+  };
+
   if (history.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none">
@@ -135,11 +163,7 @@ export const Reader: React.FC<ReaderProps> = ({ history, settings, onSpeak }) =>
                 isVertical ? "flex-col" : "flex-row"
               } gap-3 rounded-2xl p-4 transition-all duration-300 hover:bg-neutral-100/40 dark:hover:bg-neutral-800/10 cursor-pointer ${
                 getFontFamilyClass()
-              } ${
-                isFocused 
-                  ? "opacity-100 text-neutral-900 dark:text-zinc-50 font-medium" 
-                  : "opacity-20 text-neutral-400 dark:text-neutral-600 hover:opacity-50"
-              }`}
+              } ${getThemeTextClass(isFocused)}`}
             >
               {/* Optional Index/Timestamp marker */}
               {settings.showTimestamp && (
@@ -157,7 +181,7 @@ export const Reader: React.FC<ReaderProps> = ({ history, settings, onSpeak }) =>
               )}
 
               {/* Hooked sentence content */}
-              <div className="flex-1 whitespace-pre-wrap break-all leading-relaxed tracking-wide select-all">
+              <div className="flex-1 whitespace-pre-wrap break-all select-all">
                 {item.text}
               </div>
 

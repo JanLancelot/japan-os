@@ -23,7 +23,7 @@ export function TexthookerDashboard() {
   const [wsEnabled, setWsEnabled] = useState(true);
 
   // Custom Hooks
-  const { settings, updateSettings, isLoaded: settingsLoaded } = useSettings();
+  const { settings, updateSettings, resetSettings, isLoaded: settingsLoaded } = useSettings();
   const { 
     history, 
     addSentence, 
@@ -100,10 +100,10 @@ export function TexthookerDashboard() {
       case "sepia":
         return "bg-[#fcf8ed] text-[#433422]";
       case "dark":
-        return "bg-zinc-950 text-zinc-100";
+        return "dark bg-zinc-950 text-zinc-100";
       case "midnight":
       default:
-        return "bg-black text-neutral-300";
+        return "dark bg-black text-neutral-300";
     }
   };
 
@@ -165,6 +165,7 @@ export function TexthookerDashboard() {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onUpdate={updateSettings}
+        onReset={resetSettings}
         voices={voices}
         status={status}
         url={wsUrl}
