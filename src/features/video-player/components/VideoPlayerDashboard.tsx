@@ -43,8 +43,6 @@ export function VideoPlayerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Demo mode
-  const [isDemoMode, setIsDemoMode] = useState(false);
   
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -241,7 +239,6 @@ export function VideoPlayerDashboard() {
       URL.revokeObjectURL(videoUrl);
     }
     setVideoFile(file);
-    setIsDemoMode(false);
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
     setIsPlaying(false);
@@ -256,7 +253,6 @@ export function VideoPlayerDashboard() {
   // Handle Subtitle file load
   const handleSubtitleFileChange = (file: File) => {
     setSubtitleFile(file);
-    setIsDemoMode(false);
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
@@ -267,39 +263,6 @@ export function VideoPlayerDashboard() {
       }
     };
     reader.readAsText(file);
-  };
-
-  // Launch Demo Mode
-  const handleStartDemo = () => {
-    setIsDemoMode(true);
-    setVideoFile(null);
-    setSubtitleFile(null);
-    // Use public demo video URL
-    setVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-    
-    // Japanese tale "Momotaro" demo subs mapped to early parts of Big Buck Bunny
-    const DEMO_SUBTITLES: SubtitleCue[] = [
-      { id: "1", startTime: 1.0, endTime: 5.0, text: "昔々、あるところに、おじいさんとおばあさんが住んでいました。" },
-      { id: "2", startTime: 6.0, endTime: 11.0, text: "おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。" },
-      { id: "3", startTime: 12.0, endTime: 17.0, text: "おばあさんが川で洗濯をしていると、大きな桃が流れてきました。" },
-      { id: "4", startTime: 18.0, endTime: 22.0, text: "「おや、これは大きな桃だこと。持って帰っておじいさんと食べましょう」" },
-      { id: "5", startTime: 23.0, endTime: 28.0, text: "おばあさんが桃を家に持ち帰ると、桃の中から元気な男の子が生まれました。" },
-      { id: "6", startTime: 29.0, endTime: 34.0, text: "二人は大喜びで、男の子を「桃太郎」と名付けました。" },
-      { id: "7", startTime: 35.0, endTime: 40.0, text: "桃太郎はどんどん大きくなり、力持ちで優しい男の子に育ちました。" },
-      { id: "8", startTime: 41.0, endTime: 46.0, text: "ある日、桃太郎は村を荒らす鬼を退治するため、鬼ヶ島へ行くことを決意しました。" },
-      { id: "9", startTime: 47.0, endTime: 52.0, text: "おばあさんは美味しいきびだんごを作って、桃太郎に持たせました。" },
-      { id: "10", startTime: 53.0, endTime: 58.0, text: "旅の途中で、犬、猿、キジに出会い、きびだんごを分けてあげて仲間になりました。" },
-      { id: "11", startTime: 59.0, endTime: 65.0, text: "みんなで力を合わせて鬼の城に乗り込み、鬼たちを見事に退治しました。" },
-      { id: "12", startTime: 66.0, endTime: 72.0, text: "鬼から宝物を取り戻した桃太郎たちは、元気に村へ帰り、幸せに暮らしました。" }
-    ];
-    setSubtitles(DEMO_SUBTITLES);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setCurrentSubtitleIndex(-1);
-    setAudioTracks([]);
-    setActiveAudioTrackIndex(0);
-    setTextTracks([]);
-    setActiveTextTrackIndex(-1);
   };
 
   // Monitor video playback time update
@@ -377,23 +340,6 @@ export function VideoPlayerDashboard() {
           }
         };
         reader.readAsText(subtitleFile);
-      } else if (isDemoMode) {
-        // Japanese tale "Momotaro" demo subs mapped to early parts of Big Buck Bunny
-        const DEMO_SUBTITLES: SubtitleCue[] = [
-          { id: "1", startTime: 1.0, endTime: 5.0, text: "昔々、あるところに、おじいさんとおばあさんが住んでいました。" },
-          { id: "2", startTime: 6.0, endTime: 11.0, text: "おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。" },
-          { id: "3", startTime: 12.0, endTime: 17.0, text: "おばあさんが川で洗濯をしていると、大きな桃が流れてきました。" },
-          { id: "4", startTime: 18.0, endTime: 22.0, text: "「おや、これは大きな桃だこと。持って帰っておじいさんと食べましょう」" },
-          { id: "5", startTime: 23.0, endTime: 28.0, text: "おばあさんが桃を家に持ち帰ると、桃の中から元気な男の子が生まれました。" },
-          { id: "6", startTime: 29.0, endTime: 34.0, text: "二人は大喜びで、男の子を「桃太郎」と名付けました。" },
-          { id: "7", startTime: 35.0, endTime: 40.0, text: "桃太郎はどんどん大きくなり、力持ちで優しい男の子に育ちました。" },
-          { id: "8", startTime: 41.0, endTime: 46.0, text: "ある日、桃太郎は村を荒らす鬼を退治するため、鬼ヶ島へ行くことを決意しました。" },
-          { id: "9", startTime: 47.0, endTime: 52.0, text: "おばあさんは美味しいきびだんごを作って、桃太郎に持たせました。" },
-          { id: "10", startTime: 53.0, endTime: 58.0, text: "旅の途中で、犬、猿、キジに出会い、きびだんごを分けてあげて仲間になりました。" },
-          { id: "11", startTime: 59.0, endTime: 65.0, text: "みんなで力を合わせて鬼の城に乗り込み、鬼たちを見事に退治しました。" },
-          { id: "12", startTime: 66.0, endTime: 72.0, text: "鬼から宝物を取り戻した桃太郎たちは、元気に村へ帰り、幸せに暮らしました。" }
-        ];
-        setSubtitles(DEMO_SUBTITLES);
       } else {
         setSubtitles([]);
       }
@@ -683,7 +629,7 @@ export function VideoPlayerDashboard() {
     );
   }
 
-     if (!videoUrl) {
+  if (!videoUrl) {
     return (
       <div className="flex-1 flex flex-col h-screen w-screen bg-black text-neutral-200 overflow-hidden font-sans select-none relative">
         {/* Background ambient lighting */}
@@ -728,125 +674,100 @@ export function VideoPlayerDashboard() {
         {/* Main Workspace for upload */}
         <div className="flex-1 flex overflow-hidden relative">
           <div className="flex-1 flex flex-col p-6 overflow-y-auto min-w-0 relative gap-6">
-            <div className="flex-1 flex flex-col justify-center items-center max-w-4xl w-full mx-auto gap-8 py-10 z-10">
-              
-              <div className="text-center max-w-lg mb-4">
+            <div className="flex-1 flex flex-col justify-center items-center max-w-xl w-full mx-auto gap-6 py-10 z-10">
+
+              <div className="text-center mb-2">
                 <h2 className="text-2xl font-bold tracking-tight text-white">Load Immersion Media</h2>
                 <p className="text-xs text-neutral-500 mt-2">
-                  Select a local Japanese video file and its corresponding subtitles. Hover over words in the subtitles while holding <kbd className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-800 rounded text-[9px] font-mono text-neutral-400">Shift</kbd> to lookup definitions in the dictionary.
+                  Drop your video and subtitle files below to get started.
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6 w-full">
-                {/* Video Dropzone */}
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragOverVideo(true);
-                  }}
-                  onDragLeave={() => setIsDragOverVideo(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragOverVideo(false);
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0 && files[0].type.startsWith("video/")) {
-                      handleVideoFileChange(files[0]);
-                    }
-                  }}
-                  className={`border border-dashed rounded-3xl p-8 bg-neutral-950/40 text-center backdrop-blur-sm relative overflow-hidden group transition duration-300 flex flex-col justify-center items-center h-[220px] ${
-                    isDragOverVideo ? "border-blue-500 bg-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "border-neutral-800 hover:border-neutral-700"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleVideoFileChange(file);
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="w-12 h-12 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:scale-105 transition-transform mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-                      <line x1="7" y1="2" x2="7" y2="22"></line>
-                      <line x1="17" y1="2" x2="17" y2="22"></line>
-                      <line x1="2" y1="12" x2="22" y2="12"></line>
-                      <line x1="2" y1="7" x2="7" y2="7"></line>
-                      <line x1="2" y1="17" x2="7" y2="17"></line>
-                      <line x1="17" y1="17" x2="22" y2="17"></line>
-                      <line x1="17" y1="7" x2="22" y2="7"></line>
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-neutral-200">
-                    Select Video File
-                  </h3>
-                  <p className="text-[10px] text-neutral-500 mt-2">
-                    Drag and drop or click to browse. Supports MP4, WebM, MKV etc.
-                  </p>
-                </div>
+              {/* Unified Drop Zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragOverVideo(true); }}
+                onDragLeave={() => setIsDragOverVideo(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOverVideo(false);
+                  const files = e.dataTransfer.files;
+                  for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.type.startsWith("video/")) handleVideoFileChange(file);
+                    else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt")) handleSubtitleFileChange(file);
+                  }
+                }}
+                className={`border border-dashed rounded-3xl p-10 bg-neutral-950/40 text-center backdrop-blur-sm relative overflow-hidden transition duration-300 flex flex-col justify-center items-center w-full gap-5 ${
+                  isDragOverVideo
+                    ? "border-blue-500 bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.1)]"
+                    : "border-neutral-800 hover:border-neutral-700"
+                }`}
+              >
+                {/* Hidden file inputs */}
+                <input
+                  id="video-file-input"
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoFileChange(f); }}
+                />
+                <input
+                  id="subtitle-file-input"
+                  type="file"
+                  accept=".srt,.vtt"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubtitleFileChange(f); }}
+                />
 
-                {/* Subtitles Dropzone */}
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragOverSubs(true);
-                  }}
-                  onDragLeave={() => setIsDragOverSubs(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragOverSubs(false);
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                      handleSubtitleFileChange(files[0]);
-                    }
-                  }}
-                  className={`border border-dashed rounded-3xl p-8 bg-neutral-950/40 text-center backdrop-blur-sm relative overflow-hidden group transition duration-300 flex flex-col justify-center items-center h-[220px] ${
-                    isDragOverSubs ? "border-indigo-500 bg-indigo-500/5 shadow-[0_0_20px_rgba(99,102,241,0.1)]" : "border-neutral-800 hover:border-neutral-700"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept=".srt,.vtt"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleSubtitleFileChange(file);
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="w-12 h-12 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:scale-105 transition-transform mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      <line x1="8" y1="9" x2="16" y2="9"></line>
-                      <line x1="8" y1="13" x2="14" y2="13"></line>
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-neutral-200">
-                    Select Subtitle File
-                  </h3>
-                  <p className="text-[10px] text-neutral-500 mt-2">
-                    Drag and drop or click to browse. Supports SRT, VTT formats.
-                  </p>
-                </div>
-              </div>
-
-              {/* Demo Mode trigger */}
-              <div className="flex flex-col items-center gap-4 w-full">
-                <div className="flex items-center gap-3 w-full max-w-sm">
-                  <div className="h-px bg-neutral-900 flex-1" />
-                  <span className="text-[10px] font-mono text-neutral-600 uppercase">or get started instantly</span>
-                  <div className="h-px bg-neutral-900 flex-1" />
-                </div>
-
-                <button
-                  onClick={handleStartDemo}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-98 transition flex items-center gap-2 cursor-pointer border border-blue-500/30"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                {/* Upload icon */}
+                <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition ${isDragOverVideo ? "bg-blue-950/40 border-blue-800 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-400"}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  Start Demo Mode (Momotaro Tale)
-                </button>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-neutral-200">Drop files here</p>
+                  <p className="text-[11px] text-neutral-500 mt-1">or browse for video and subtitle files separately</p>
+                </div>
+
+                {/* Browse buttons */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => document.getElementById("video-file-input")?.click()}
+                    className={`px-4 py-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      videoFile
+                        ? "bg-blue-950/40 border-blue-800/60 text-blue-300"
+                        : "bg-neutral-900 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:text-white"
+                    }`}
+                  >
+                    {videoFile ? (
+                      <span className="flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {videoFile.name.length > 22 ? videoFile.name.slice(0, 22) + "…" : videoFile.name}
+                      </span>
+                    ) : "📹 Choose Video"}
+                  </button>
+                  <button
+                    onClick={() => document.getElementById("subtitle-file-input")?.click()}
+                    className={`px-4 py-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      subtitleFile
+                        ? "bg-indigo-950/40 border-indigo-800/60 text-indigo-300"
+                        : "bg-neutral-900 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:text-white"
+                    }`}
+                  >
+                    {subtitleFile ? (
+                      <span className="flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {subtitleFile.name.length > 22 ? subtitleFile.name.slice(0, 22) + "…" : subtitleFile.name}
+                      </span>
+                    ) : "💬 Choose Subtitles"}
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-neutral-600 font-mono">MP4 · WebM · MKV · SRT · VTT</p>
               </div>
 
             </div>
@@ -935,7 +856,7 @@ export function VideoPlayerDashboard() {
             <h1 className="font-bold text-sm tracking-tight text-white">Video Immersion Player</h1>
           </div>
           <span className="text-[11px] text-neutral-400 truncate max-w-[200px] sm:max-w-[320px] font-semibold bg-neutral-900/60 border border-neutral-850 rounded-xl px-3 py-1 backdrop-blur-sm">
-            {isDemoMode ? "BigBuckBunny.mp4" : videoFile?.name}
+            {videoFile?.name}
           </span>
         </div>
 
@@ -966,7 +887,7 @@ export function VideoPlayerDashboard() {
           </label>
           <div className="h-4 w-px bg-neutral-800 mx-1" />
           <span className="text-[10px] font-mono tracking-widest text-neutral-550 uppercase">
-            {isDemoMode ? "Demo Loaded" : "Active Media"}
+            Active Media
           </span>
         </div>
       </header>
