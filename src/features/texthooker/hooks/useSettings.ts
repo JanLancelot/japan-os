@@ -31,16 +31,19 @@ export function useSettings() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const sharedKey = typeof window !== "undefined" ? localStorage.getItem("gemini_api_key") || "" : "";
+      const globalTheme = typeof window !== "undefined" ? localStorage.getItem("japanos-global-theme") || "dark" : "dark";
       if (stored) {
         const parsed = JSON.parse(stored);
         setSettings({ 
           ...DEFAULT_SETTINGS, 
           ...parsed, 
+          theme: globalTheme as any,
           geminiApiKey: parsed.geminiApiKey || sharedKey 
         });
-      } else if (sharedKey) {
+      } else {
         setSettings({ 
           ...DEFAULT_SETTINGS, 
+          theme: globalTheme as any,
           geminiApiKey: sharedKey 
         });
       }
@@ -50,8 +53,26 @@ export function useSettings() {
     setIsLoaded(true);
   }, []);
 
+  // Sync with global theme changes
+  useEffect(() => {
+    const syncTheme = () => {
+      const globalTheme = localStorage.getItem("japanos-global-theme") || "dark";
+      setSettings((prev) => ({ ...prev, theme: globalTheme as any }));
+    };
+    window.addEventListener("japanos-theme-change", syncTheme);
+    window.addEventListener("storage", syncTheme);
+    return () => {
+      window.removeEventListener("japanos-theme-change", syncTheme);
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
+
   // Update settings and write to localStorage
   const updateSettings = (newSettings: Partial<ReaderSettings>) => {
+    if (newSettings.theme) {
+      localStorage.setItem("japanos-global-theme", newSettings.theme);
+      window.dispatchEvent(new Event("japanos-theme-change"));
+    }
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
       try {

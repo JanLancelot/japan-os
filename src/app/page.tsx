@@ -1,284 +1,458 @@
-import Link from "next/link";
-import { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "JapanOS - Learning Workspace",
-  description: "A premium Japanese language learning OS. Features a live Textractor WebSocket texthooker and an interactive video player with subtitle lookups.",
-};
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+
+interface ClassicBook {
+  id: string;
+  title: string;
+  author: string;
+  genre: string;
+  description: string;
+  coverGradient: string;
+  matchScore: string;
+  year: string;
+}
+
+const CLASSICS: ClassicBook[] = [
+  {
+    id: "sample-cat-book",
+    title: "吾輩は猫である",
+    author: "夏目漱石",
+    genre: "Classic Novel • Satire",
+    description: "A satirical masterpiece viewed through the eyes of a Nameless Cat observing human follies.",
+    coverGradient: "from-[#145c43] to-[#0a2f22]",
+    matchScore: "98% Match",
+    year: "1905",
+  },
+  {
+    id: "sample-melos-book",
+    title: "走れメロス",
+    author: "太宰治",
+    genre: "Classic Novel • Drama",
+    description: "A timeless tale of friendship, trust, and a man's race against time to save his host companion.",
+    coverGradient: "from-[#9a1c1c] to-[#3b0707]",
+    matchScore: "95% Match",
+    year: "1940",
+  },
+  {
+    id: "silver-spoon",
+    title: "銀の匙",
+    author: "中勘助",
+    genre: "Memoir • Nostalgia",
+    description: "A beautifully descriptive memoir of childhood, school years, and the magic of small discoveries.",
+    coverGradient: "from-[#1e3a8a] to-[#0f172a]",
+    matchScore: "91% Match",
+    year: "1913",
+  },
+  {
+    id: "galactic-railroad",
+    title: "銀河鉄道の夜",
+    author: "宮沢賢治",
+    genre: "Fantasy • Philosophical",
+    description: "A dreamlike journey through the stars exploring life, sacrifice, and true happiness.",
+    coverGradient: "from-[#581c87] to-[#1e1b4b]",
+    matchScore: "94% Match",
+    year: "1934",
+  },
+];
 
 export default function Home() {
-  return (
-    <div className="flex-1 flex flex-col justify-between bg-black text-neutral-300 font-sans min-h-screen relative overflow-hidden select-none">
-      
-      {/* Background ambient lighting */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[55%] rounded-full bg-indigo-900/10 blur-[130px] pointer-events-none" />
-      
-      {/* Header */}
-      <header className="px-6 py-6 md:px-12 flex items-center justify-between border-b border-neutral-900/50 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/10 font-serif">
-            和
-          </div>
-          <span className="font-bold tracking-tight text-zinc-100 font-sans text-sm">JapanOS</span>
-        </div>
-        <span className="text-[10px] font-mono tracking-widest text-neutral-500 uppercase">workspace v1.0</span>
-      </header>
+  const [showIntro, setShowIntro] = useState(false);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<ClassicBook | null>(null);
 
-      {/* Main dashboard hub grid */}
-      <main className="flex-1 flex flex-col justify-center max-w-5xl w-full mx-auto px-6 py-12 md:py-20 z-10">
-        
-        {/* Title */}
-        <div className="text-center md:text-left mb-12 md:mb-16 max-w-2xl">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white font-sans leading-tight">
-            Elevate Your Japanese <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Language Learning</span>
-          </h2>
-          <p className="text-sm text-neutral-500 mt-3 leading-relaxed">
-            A cohesive space designed for immersion. Stream text from visual novels using Textractor hooks, or watch videos with interactive subtitle lookups and real-time dictionary support.
+  useEffect(() => {
+    // Play intro only once per session
+    const hasSeenIntro = sessionStorage.getItem("japanos-seen-intro");
+    if (!hasSeenIntro) {
+      setShowIntro(true);
+      sessionStorage.setItem("japanos-seen-intro", "true");
+      const timer = setTimeout(() => {
+        setShowIntro(false);
+      }, 3200); // Intro lasts ~3s
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  if (showIntro) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[9999] overflow-hidden select-none">
+        <style jsx global>{`
+          @keyframes tudum-logo {
+            0% {
+              transform: scale(0.6);
+              opacity: 0;
+              letter-spacing: -10px;
+              filter: blur(10px);
+            }
+            15% {
+              transform: scale(1.02);
+              opacity: 1;
+              letter-spacing: 2px;
+              filter: blur(0px);
+            }
+            75% {
+              transform: scale(1);
+              opacity: 1;
+              letter-spacing: 0px;
+              filter: blur(0px);
+            }
+            100% {
+              transform: scale(1.6);
+              opacity: 0;
+              letter-spacing: 4px;
+              filter: blur(4px);
+            }
+          }
+          @keyframes tudum-glow {
+            0% { text-shadow: 0 0 0px rgba(229, 9, 20, 0); }
+            30% { text-shadow: 0 0 30px rgba(229, 9, 20, 0.8), 0 0 50px rgba(229, 9, 20, 0.4); }
+            70% { text-shadow: 0 0 40px rgba(229, 9, 20, 0.9), 0 0 70px rgba(229, 9, 20, 0.5); }
+            100% { text-shadow: 0 0 0px rgba(229, 9, 20, 0); }
+          }
+          .tudum-animate {
+            animation: tudum-logo 3.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+          .tudum-glow-animate {
+            animation: tudum-glow 3.2s ease-in-out forwards;
+          }
+        `}</style>
+        <div className="flex flex-col items-center">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-[#E50914] font-sans tudum-animate tudum-glow-animate">
+            JAPANOS
+          </h1>
+          <p className="text-[9px] font-mono tracking-widest text-zinc-550 uppercase mt-4 animate-pulse">
+            Booting Immersion Workspace v2.0...
           </p>
-        </div>        {/* Dashboard Grid */}
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl">
-
-          {/* Card 1: Live Texthooker Client */}
-          <Link
-            href="/texthooker"
-            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
-          >
-            {/* Hover card glow */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-indigo-500/0 via-indigo-500/0 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-            <div className="flex flex-col gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-950/30 border border-indigo-900/30 flex items-center justify-center text-indigo-400 shadow-inner group-hover:scale-105 transition-transform">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
-                  テキストフッカー Texthooker
-                </h3>
-                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-                  Connect to local Textractor WebSocket server and stream visual novel text live into the web dashboard.
-                </p>
-              </div>
-
-              {/* Bullet Features */}
-              <ul className="flex flex-col gap-1.5 mt-2.5">
-                {[
-                  "Real-time game dialogue streaming (WebSocket)",
-                  "Automatic clipboard copy and text-to-speech",
-                  "Integrated sentence history and editing panel",
-                  "Custom typographic settings and focusing modes",
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      className="text-indigo-500"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 mt-8 transition-colors select-none">
-              Open Texthooker
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="transform group-hover:translate-x-1 transition-transform"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* Card 2: Video Player & Subtitles */}
-          <Link
-            href="/video-player"
-            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
-          >
-            {/* Hover card glow */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-500/0 via-violet-500/0 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-            <div className="flex flex-col gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-violet-950/30 border border-violet-900/30 flex items-center justify-center text-violet-400 shadow-inner group-hover:scale-105 transition-transform">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <polygon points="23 7 16 12 23 17 23 7" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </svg>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
-                  動画 Player & Subtitles
-                </h3>
-                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-                  Stream local videos with interactive SRT/VTT subtitle tracks. Hold Shift to look up definitions.
-                </p>
-              </div>
-
-              {/* Bullet Features */}
-              <ul className="flex flex-col gap-1.5 mt-2.5">
-                {[
-                  "HTML5 overlay subtitles (Shift + Hover lookup)",
-                  "Custom subtitle sync offsets (±0.5s intervals)",
-                  "Collapsible interactive script sidebar panel",
-                  "Shortcuts to replay, pause-on-hover & copy line",
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      className="text-violet-500"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-400 group-hover:text-violet-300 mt-8 transition-colors select-none">
-              Open Video Player
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="transform group-hover:translate-x-1 transition-transform"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* Card 3: Ebook Reader & Library */}
-          <Link
-            href="/reader"
-            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
-          >
-            {/* Hover card glow */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-            <div className="flex flex-col gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-950/30 border border-emerald-900/30 flex items-center justify-center text-emerald-400 shadow-inner group-hover:scale-105 transition-transform">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z" />
-                </svg>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
-                  読書 Ebook Reader & Library
-                </h3>
-                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-                  Immerse in Japanese novels. Supports reflowable vertical/horizontal layouts, bookmarks, and hover dictionary lookup.
-                </p>
-              </div>
-
-              {/* Bullet Features */}
-              <ul className="flex flex-col gap-1.5 mt-2.5">
-                {[
-                  "Offline EPUB & plain TXT parsing (IndexedDB)",
-                  "Traditional vertical (Tate-gaki) layout toggle",
-                  "Yomichan-style hover dictionary lookup",
-                  "Vocabulary notebook with Anki CSV exporter",
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
-                    <svg
-                      xmlns="http://www.w3.org/2050/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      className="text-emerald-500"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 group-hover:text-emerald-300 mt-8 transition-colors select-none">
-              Open Ebook Reader
-              <svg
-                xmlns="http://www.w3.org/2050/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="transform group-hover:translate-x-1 transition-transform"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </div>
-          </Link>
         </div>
-      </main>
+      </div>
+    );
+  }
 
-      {/* Footer */}
-      <footer className="px-6 py-6 md:px-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-900/50 backdrop-blur-sm z-10 text-[10px] text-neutral-600 font-mono">
-        <span>&copy; 2026 JapanOS Workspace. Built for language immersion.</span>
-        <span>Keyboard shortcuts: Shift+Hover for dictionary lookup. Subtitle sync with ± offset controls.</span>
-      </footer>
+  return (
+    <div className="flex-1 bg-[#141414] text-[#E5E5E5] min-h-screen relative pb-16">
+      {/* 1. Hero Billboard Banner */}
+      <section className="relative w-full h-[70vh] md:h-[85vh] flex items-center px-6 md:px-12 overflow-hidden">
+        {/* Billboard Background image & gradient overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center select-none pointer-events-none"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=1920')",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/10 to-black/30 z-10" />
+
+        {/* Billboard Content */}
+        <div className="max-w-2xl z-20 flex flex-col gap-4 mt-12 md:mt-20">
+          <div className="flex items-center gap-2">
+            <span className="bg-red-600 text-white font-extrabold text-[9px] tracking-widest px-1.5 py-0.5 rounded uppercase font-sans">
+              N
+            </span>
+            <span className="text-xs font-semibold text-zinc-350 tracking-wider font-mono">
+              JAPANOS ORIGINAL SYSTEM
+            </span>
+          </div>
+
+          <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white uppercase drop-shadow-lg leading-tight font-sans">
+            Video Immersion
+          </h2>
+
+          <div className="flex items-center gap-3 text-xs md:text-sm font-semibold">
+            <span className="text-emerald-400 font-bold">98% Match</span>
+            <span className="text-zinc-300">2026</span>
+            <span className="border border-zinc-500/50 px-1.5 py-0.2 rounded text-[10px] text-zinc-400 font-mono">
+              HD
+            </span>
+            <span className="text-zinc-400">Subtitle Lookups</span>
+          </div>
+
+          <p className="text-sm md:text-base text-zinc-300 leading-relaxed drop-shadow max-w-lg">
+            Stream local video files with fully interactive subtitle tracks. Hover words while holding Shift to look up definitions instantly, synchronize subtitles, and auto-export to your Anki notebook.
+          </p>
+
+          <div className="flex items-center gap-3 mt-4">
+            <Link
+              href="/video-player"
+              className="bg-white hover:bg-zinc-200 text-black font-bold px-6 py-2.5 rounded-md flex items-center justify-center gap-2 transition-all duration-300 text-sm shadow-md"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Play Player
+            </Link>
+
+            <button
+              onClick={() => setInfoModalOpen(true)}
+              className="bg-zinc-550/40 hover:bg-zinc-550/60 text-white font-bold px-6 py-2.5 rounded-md flex items-center justify-center gap-2 transition-all duration-300 text-sm border border-zinc-700 backdrop-blur-sm shadow-md"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              More Info
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Horizontal Scrolling Card Rows */}
+      <div className="relative px-6 md:px-12 -mt-16 md:-mt-24 z-30 flex flex-col gap-10">
+        
+        {/* Row 1: Continue Immersion (Our Main Tools) */}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg md:text-xl font-bold text-white tracking-wide">Continue Learning</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            
+            {/* Ebook Card */}
+            <Link
+              href="/reader"
+              className="group relative h-48 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-zinc-700 shadow-lg cursor-pointer transform hover:scale-[1.03] transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600')",
+                }}
+              />
+              <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-400 font-mono tracking-widest uppercase">Ebook Reader</span>
+                </div>
+                <h4 className="text-base font-bold text-white truncate">読書 Ebook Library</h4>
+                <div className="w-full bg-zinc-800 rounded-full h-1.5 mt-1 border border-zinc-900/50">
+                  <div className="bg-[#E50914] h-1.5 rounded-full" style={{ width: "68%" }} />
+                </div>
+                <span className="text-[10px] text-zinc-400 font-medium">68% completed • Resume Reading</span>
+              </div>
+            </Link>
+
+            {/* Video Player Card */}
+            <Link
+              href="/video-player"
+              className="group relative h-48 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-zinc-700 shadow-lg cursor-pointer transform hover:scale-[1.03] transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=600')",
+                }}
+              />
+              <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-violet-400 font-mono tracking-widest uppercase">Video Player</span>
+                </div>
+                <h4 className="text-base font-bold text-white truncate">動画 Media Immersion</h4>
+                <div className="w-full bg-zinc-800 rounded-full h-1.5 mt-1 border border-zinc-900/50">
+                  <div className="bg-[#E50914] h-1.5 rounded-full" style={{ width: "42%" }} />
+                </div>
+                <span className="text-[10px] text-zinc-400 font-medium">42% completed • Resume Watching</span>
+              </div>
+            </Link>
+
+            {/* Texthooker Card */}
+            <Link
+              href="/texthooker"
+              className="group relative h-48 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-zinc-700 shadow-lg cursor-pointer transform hover:scale-[1.03] transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600')",
+                }}
+              />
+              <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded bg-red-600 text-white font-extrabold text-[8px] tracking-wider uppercase">LIVE</span>
+                  <span className="text-[10px] font-bold text-indigo-400 font-mono tracking-widest uppercase">Texthooker</span>
+                </div>
+                <h4 className="text-base font-bold text-white truncate">テキストフッカー Hook Client</h4>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                  <span className="text-[10px] text-zinc-400 font-medium">WebSocket Listening (ws://localhost:6677)</span>
+                </div>
+              </div>
+            </Link>
+
+          </div>
+        </div>
+
+        {/* Row 2: Popular Classics (Ebooks) */}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg md:text-xl font-bold text-white tracking-wide">Popular Classics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {CLASSICS.map((book) => (
+              <div
+                key={book.id}
+                onClick={() => setSelectedBook(book)}
+                className="group relative aspect-[2/3] rounded bg-gradient-to-br border border-zinc-900 hover:border-zinc-700 cursor-pointer overflow-hidden transform hover:scale-[1.04] transition-all duration-300 shadow-lg"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${book.coverGradient} opacity-90`} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+                <div className="absolute inset-0 p-4 z-20 flex flex-col justify-between">
+                  <div className="text-[7px] font-mono text-zinc-400 tracking-widest uppercase">CLASSIC IMMERSION</div>
+                  
+                  <div className="flex flex-col gap-1.5">
+                    <h4 className="text-base md:text-lg font-serif font-black text-white leading-tight line-clamp-3">
+                      {book.title}
+                    </h4>
+                    <p className="text-[10px] text-zinc-400 font-medium">{book.author}</p>
+                  </div>
+                </div>
+
+                {/* Hover overlay details */}
+                <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-4 flex flex-col justify-between text-xs">
+                  <div className="flex flex-col gap-2">
+                    <h5 className="font-bold text-white text-sm">{book.title}</h5>
+                    <div className="flex items-center gap-2 text-[10px] font-semibold text-emerald-400">
+                      <span>{book.matchScore}</span>
+                      <span className="text-zinc-500">{book.year}</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-450 leading-relaxed line-clamp-4">{book.description}</p>
+                  </div>
+                  <Link
+                    href={`/reader?bookId=${book.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-[#E50914] text-white hover:bg-red-700 py-1.5 rounded font-bold text-center text-[11px] transition duration-200"
+                  >
+                    Start Reading
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 3: Workspace Original Features */}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg md:text-xl font-bold text-white tracking-wide">Immersion Features</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                title: "Shift+Hover Yomichan Lookup",
+                desc: "Hover over any Japanese word while holding the Shift key to fetch instant dictionary definitions.",
+                icon: "🔍",
+              },
+              {
+                title: "Local Textractor Websockets",
+                desc: "Automatically streams dialog from local visual novels through local websocket hook integration.",
+                icon: "⚡",
+              },
+              {
+                title: "Tategaki Vertical Mode",
+                desc: "Switch the ebook reader instantly between traditional vertical layout and standard horizontal layout.",
+                icon: "✍️",
+              },
+              {
+                title: "Anki Vocabulary Exporter",
+                desc: "Add flagged lookup words to your local vocabulary notebook and export them to Anki CSV files easily.",
+                icon: "📇",
+              },
+            ].map((f, i) => (
+              <div key={i} className="bg-zinc-900/40 border border-zinc-900 rounded-lg p-5 flex flex-col gap-2.5">
+                <span className="text-2xl">{f.icon}</span>
+                <h4 className="text-sm font-bold text-white">{f.title}</h4>
+                <p className="text-xs text-zinc-400 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Info Modal */}
+      {infoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-lg w-full p-6 text-sm text-zinc-300 relative shadow-2xl">
+            <button
+              onClick={() => setInfoModalOpen(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white transition cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <h3 className="text-xl font-bold text-white mb-3">About JapanOS Immersion Hub</h3>
+            <p className="leading-relaxed mb-4">
+              JapanOS is a custom-built, premium language immersion dashboard. By integrating local media reading, video playing, and text hookers, it allows seamless workflow in one window.
+            </p>
+            <ul className="flex flex-col gap-2 border-t border-zinc-800 pt-4">
+              <li className="flex items-center gap-2">
+                <span className="text-red-500">✔</span>
+                <span>Responsive vertical ebook reading</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-red-500">✔</span>
+                <span>Dynamic local SRT/VTT file sync for videos</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-red-500">✔</span>
+                <span>Automatic clipboard copy & Speech Synthesis</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Book Info / Quick Read Modal */}
+      {selectedBook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-md w-full overflow-hidden shadow-2xl relative">
+            <div className={`h-40 bg-gradient-to-br ${selectedBook.coverGradient} flex flex-col justify-end p-6 relative`}>
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+              <button
+                onClick={() => setSelectedBook(null)}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-black/40 p-1.5 rounded-full transition cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+              <span className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase z-10">BOOK HIGHLIGHT</span>
+              <h3 className="text-2xl font-serif font-black text-white leading-tight mt-1 z-10">{selectedBook.title}</h3>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-emerald-400 font-bold">{selectedBook.matchScore}</span>
+                <span className="text-zinc-400">{selectedBook.author}</span>
+                <span className="text-zinc-500">{selectedBook.year}</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">{selectedBook.description}</p>
+              <div className="flex gap-3 mt-2">
+                <Link
+                  href={`/reader?bookId=${selectedBook.id}`}
+                  className="flex-1 bg-white hover:bg-zinc-200 text-black font-bold py-2.5 rounded text-center text-xs transition duration-200"
+                >
+                  Read Now
+                </Link>
+                <button
+                  onClick={() => setSelectedBook(null)}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-2.5 rounded text-center text-xs border border-zinc-700 transition duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -66,8 +66,27 @@ export function ReaderDashboard() {
     refreshVocabulary();
   }, []);
 
+  // Sync with global theme
+  useEffect(() => {
+    const syncTheme = () => {
+      const globalTheme = localStorage.getItem("japanos-global-theme") || "dark";
+      setSettings((prev) => ({ ...prev, theme: globalTheme as any }));
+    };
+    syncTheme();
+    window.addEventListener("japanos-theme-change", syncTheme);
+    window.addEventListener("storage", syncTheme);
+    return () => {
+      window.removeEventListener("japanos-theme-change", syncTheme);
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
+
   // Sync settings updates to localStorage
   const handleUpdateSettings = (newSettings: ReaderSettings) => {
+    if (newSettings.theme !== settings.theme) {
+      localStorage.setItem("japanos-global-theme", newSettings.theme);
+      window.dispatchEvent(new Event("japanos-theme-change"));
+    }
     setSettings(newSettings);
     saveReaderSettings(newSettings);
   };
@@ -261,51 +280,14 @@ export function ReaderDashboard() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[55%] rounded-full bg-indigo-900/10 blur-[130px] pointer-events-none" />
 
-      {/* Header */}
-      <header className="px-6 py-5 md:px-12 flex items-center justify-between border-b border-neutral-900/50 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-4">
-          <a
-            href="/"
-            className="p-1.5 rounded-lg border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50 text-neutral-400 hover:text-white transition flex items-center justify-center cursor-pointer"
-            title="Back to Desktop"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </a>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/10 font-serif">
-              書
-            </div>
-            <span className="font-bold tracking-tight text-zinc-100 font-sans text-sm">JapanOS Reader</span>
-          </div>
-        </div>
-        <span className="text-[10px] font-mono tracking-widest text-neutral-500 uppercase">Immersive Ebooks</span>
-      </header>
-
       {/* Main Library Dashboard Workspace */}
-      <main className="flex-1 flex z-10 overflow-hidden relative">
+      <main className="flex-1 flex z-10 overflow-hidden relative pt-6">
         <LibraryView
           books={books}
           onSelectBook={handleSelectBook}
           onRefreshBooks={refreshBooks}
         />
       </main>
-
-      {/* Footer */}
-      <footer className="px-6 py-6 md:px-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-900/50 backdrop-blur-sm z-10 text-[10px] text-neutral-600 font-mono">
-        <span>&copy; 2026 JapanOS Reader. Immersive reading environment.</span>
-        <span>Aozora Bunko classics preloaded. Import custom EPUB and TXT files.</span>
-      </footer>
     </div>
   );
 }

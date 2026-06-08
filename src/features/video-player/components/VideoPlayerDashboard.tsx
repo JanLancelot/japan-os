@@ -12,6 +12,53 @@ interface SubtitleCue {
 
 export function VideoPlayerDashboard() {
   const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setTheme(localStorage.getItem("japanos-global-theme") || "dark");
+    };
+    syncTheme();
+    window.addEventListener("japanos-theme-change", syncTheme);
+    window.addEventListener("storage", syncTheme);
+    return () => {
+      window.removeEventListener("japanos-theme-change", syncTheme);
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
+
+  const getThemeContainerClass = () => {
+    switch (theme) {
+      case "light": return "bg-zinc-50 text-zinc-800";
+      case "sepia": return "bg-[#fcf8ed] text-[#433422]";
+      case "dark": return "bg-zinc-950 text-zinc-100";
+      case "midnight":
+      default:
+        return "bg-black text-slate-100";
+    }
+  };
+
+  const getThemeCardClass = () => {
+    switch (theme) {
+      case "light": return "bg-white border-zinc-200/80 text-zinc-800 shadow-md";
+      case "sepia": return "bg-[#f5ebd6] border-[#e4d6b5] text-[#4a3621] shadow-md";
+      case "dark": return "bg-zinc-900/40 border-zinc-800/40 text-zinc-200";
+      case "midnight":
+      default:
+        return "bg-neutral-900/15 border-neutral-900 text-slate-200";
+    }
+  };
+
+  const getThemeControlClass = () => {
+    switch (theme) {
+      case "light": return "bg-zinc-100 border-zinc-250 text-zinc-750 hover:bg-zinc-200 hover:text-zinc-900";
+      case "sepia": return "bg-[#ebdec2] border-[#d7c6a0] text-[#4a3621] hover:bg-[#decfae] hover:text-[#2d2011]";
+      case "dark": return "bg-zinc-900 border-zinc-800 text-neutral-300 hover:bg-zinc-850 hover:text-white";
+      case "midnight":
+      default:
+        return "bg-neutral-950 border-neutral-900 text-neutral-300 hover:bg-neutral-900/50 hover:text-white";
+    }
+  };
   
   // Media states
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -631,54 +678,19 @@ export function VideoPlayerDashboard() {
 
   if (!videoUrl) {
     return (
-      <div className="flex-1 flex flex-col h-screen w-screen bg-black text-neutral-200 overflow-hidden font-sans select-none relative">
+      <div className={`flex-1 flex flex-col h-screen w-screen overflow-hidden font-sans select-none relative transition-colors duration-500 ${getThemeContainerClass()}`}>
         {/* Background ambient lighting */}
         <div className="absolute top-[-20%] left-[-15%] w-[60%] h-[50%] rounded-full bg-blue-900/5 blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[-15%] right-[-15%] w-[60%] h-[60%] rounded-full bg-indigo-900/5 blur-[160px] pointer-events-none" />
 
-        {/* Header */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-neutral-900/80 bg-neutral-950/20 backdrop-blur-sm z-10 shrink-0">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="p-1.5 rounded-lg border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50 text-neutral-400 hover:text-white transition flex items-center justify-center cursor-pointer"
-              title="Back to Dashboard"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-            </Link>
-            <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/10 font-serif">
-                画
-              </div>
-              <h1 className="font-bold text-sm tracking-tight text-white">Video Immersion Player</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 select-none text-[10px] font-mono tracking-widest text-neutral-550 uppercase">
-            <span className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-400">Idle</span>
-          </div>
-        </header>
-
         {/* Main Workspace for upload */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative pt-12">
           <div className="flex-1 flex flex-col p-6 overflow-y-auto min-w-0 relative gap-6">
             <div className="flex-1 flex flex-col justify-center items-center max-w-xl w-full mx-auto gap-6 py-10 z-10">
 
               <div className="text-center mb-2">
-                <h2 className="text-2xl font-bold tracking-tight text-white">Load Immersion Media</h2>
-                <p className="text-xs text-neutral-500 mt-2">
+                <h2 className="text-2xl font-bold tracking-tight">Load Immersion Media</h2>
+                <p className="text-xs opacity-60 mt-2">
                   Drop your video and subtitle files below to get started.
                 </p>
               </div>
@@ -697,10 +709,10 @@ export function VideoPlayerDashboard() {
                     else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt")) handleSubtitleFileChange(file);
                   }
                 }}
-                className={`border border-dashed rounded-3xl p-10 bg-neutral-950/40 text-center backdrop-blur-sm relative overflow-hidden transition duration-300 flex flex-col justify-center items-center w-full gap-5 ${
+                className={`border border-dashed rounded-3xl p-10 text-center backdrop-blur-sm relative overflow-hidden transition duration-350 flex flex-col justify-center items-center w-full gap-5 ${getThemeCardClass()} ${
                   isDragOverVideo
                     ? "border-blue-500 bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.1)]"
-                    : "border-neutral-800 hover:border-neutral-700"
+                    : "hover:border-neutral-700"
                 }`}
               >
                 {/* Hidden file inputs */}
@@ -720,7 +732,7 @@ export function VideoPlayerDashboard() {
                 />
 
                 {/* Upload icon */}
-                <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition ${isDragOverVideo ? "bg-blue-950/40 border-blue-800 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-400"}`}>
+                <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition ${isDragOverVideo ? "bg-blue-950/40 border-blue-800 text-blue-400" : getThemeControlClass()}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
@@ -729,18 +741,18 @@ export function VideoPlayerDashboard() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-neutral-200">Drop files here</p>
-                  <p className="text-[11px] text-neutral-500 mt-1">or browse for video and subtitle files separately</p>
+                  <p className="text-sm font-semibold">Drop files here</p>
+                  <p className="text-[11px] opacity-70 mt-1">or browse for video and subtitle files separately</p>
                 </div>
 
                 {/* Browse buttons */}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => document.getElementById("video-file-input")?.click()}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                       videoFile
                         ? "bg-blue-950/40 border-blue-800/60 text-blue-300"
-                        : "bg-neutral-900 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:text-white"
+                        : getThemeControlClass()
                     }`}
                   >
                     {videoFile ? (
@@ -752,10 +764,10 @@ export function VideoPlayerDashboard() {
                   </button>
                   <button
                     onClick={() => document.getElementById("subtitle-file-input")?.click()}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                       subtitleFile
                         ? "bg-indigo-950/40 border-indigo-800/60 text-indigo-300"
-                        : "bg-neutral-900 border-neutral-700 text-neutral-300 hover:border-neutral-600 hover:text-white"
+                        : getThemeControlClass()
                     }`}
                   >
                     {subtitleFile ? (
@@ -796,7 +808,7 @@ export function VideoPlayerDashboard() {
   return (
     <div
       ref={containerRef}
-      className="dark relative w-screen h-screen bg-black text-neutral-200 overflow-hidden font-sans select-none"
+      className={`relative w-screen h-screen overflow-hidden font-sans select-none transition-colors duration-500 ${getThemeContainerClass()}`}
     >
       {/* 100% Viewport Video Element Container */}
       <div className="absolute inset-0 w-full h-full z-0 bg-black flex items-center justify-center">
@@ -832,65 +844,6 @@ export function VideoPlayerDashboard() {
         )}
       </div>
 
-      {/* Floating Header Overlay (auto-hides on inactivity) */}
-      <header
-        className={`absolute top-0 inset-x-0 px-6 py-5 bg-gradient-to-b from-black/95 via-black/60 to-transparent flex items-center justify-between z-30 transition-all duration-500 ease-in-out ${
-          showControls ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="p-1.5 rounded-lg border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50 text-neutral-400 hover:text-white transition flex items-center justify-center cursor-pointer"
-            title="Back to Dashboard"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md font-serif">
-              画
-            </div>
-            <h1 className="font-bold text-sm tracking-tight text-white">Video Immersion Player</h1>
-          </div>
-          <span className="text-[11px] text-neutral-400 truncate max-w-[200px] sm:max-w-[320px] font-semibold bg-neutral-900/60 border border-neutral-850 rounded-xl px-3 py-1 backdrop-blur-sm">
-            {videoFile?.name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <label className="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-350 hover:text-white transition flex items-center gap-1.5 cursor-pointer backdrop-blur-sm">
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleVideoFileChange(file);
-              }}
-              className="hidden"
-            />
-            Swap Video
-          </label>
-          <label className="px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-350 hover:text-white transition flex items-center gap-1.5 cursor-pointer backdrop-blur-sm">
-            <input
-              type="file"
-              accept=".srt,.vtt"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleSubtitleFileChange(file);
-              }}
-              className="hidden"
-            />
-            Load Subs
-          </label>
-          <div className="h-4 w-px bg-neutral-800 mx-1" />
-          <span className="text-[10px] font-mono tracking-widest text-neutral-550 uppercase">
-            Active Media
-          </span>
-        </div>
-      </header>
 
       {/* Floating Cinematic Controls Bar Overlay (auto-hides on inactivity, centers in remaining space when sidebar is open) */}
       <div
@@ -898,7 +851,7 @@ export function VideoPlayerDashboard() {
           transform: `translateX(-50%) translateY(${showControls ? "0px" : "32px"})`,
           left: isSidebarOpen ? "calc(50% - 190px)" : "50%",
         }}
-        className={`absolute bottom-6 w-[90%] max-w-4xl bg-neutral-950/80 border border-neutral-900/60 backdrop-blur-md rounded-3xl p-5 flex flex-col gap-4 z-30 transition-all duration-500 ease-in-out shadow-2xl ${
+        className={`absolute bottom-6 w-[90%] max-w-4xl border backdrop-blur-md rounded-3xl p-5 flex flex-col gap-4 z-30 transition-all duration-500 ease-in-out shadow-2xl ${getThemeCardClass()} ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
@@ -1146,6 +1099,35 @@ export function VideoPlayerDashboard() {
         <div className="h-px bg-neutral-900/60" />
         <div className="flex flex-wrap items-center justify-between gap-4 select-none text-[11px] text-neutral-450">
           <div className="flex items-center gap-5">
+            {/* Swap Media Buttons */}
+            <div className="flex items-center gap-2">
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoFileChange(f); }}
+                  className="hidden"
+                />
+                Swap Video
+              </label>
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="file"
+                  accept=".srt,.vtt"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubtitleFileChange(f); }}
+                  className="hidden"
+                />
+                Load Subs
+              </label>
+              {videoFile && (
+                <span className="text-[10px] text-neutral-500 truncate max-w-[140px] font-semibold ml-1.5" title={videoFile.name}>
+                  {videoFile.name}
+                </span>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-neutral-900" />
+
             {/* Pause on Hover option */}
             <label className="flex items-center gap-2 cursor-pointer text-neutral-400 hover:text-neutral-300 transition">
               <input
@@ -1154,7 +1136,7 @@ export function VideoPlayerDashboard() {
                 onChange={(e) => setPauseOnHover(e.target.checked)}
                 className="w-3.5 h-3.5 accent-blue-500 rounded border-neutral-800"
               />
-              <span>Pause video on subtitle hover</span>
+              <span>Pause on hover</span>
             </label>
 
             {/* Auto-copy to Clipboard option */}
@@ -1165,7 +1147,7 @@ export function VideoPlayerDashboard() {
                 onChange={(e) => setAutoCopyToClipboard(e.target.checked)}
                 className="w-3.5 h-3.5 accent-indigo-500 rounded border-neutral-800"
               />
-              <span>Auto-copy subtitles to clipboard</span>
+              <span>Auto-copy</span>
             </label>
           </div>
 
@@ -1214,10 +1196,10 @@ export function VideoPlayerDashboard() {
 
       {/* Floating Collapsible Sidebar Transcript Panel Drawer */}
       {isSidebarOpen && (
-        <aside className="absolute top-0 right-0 bottom-0 w-[380px] border-l border-neutral-900 bg-neutral-950/80 backdrop-blur-md flex flex-col z-30 animate-in slide-in-from-right duration-300 h-full">
+        <aside className={`absolute top-0 right-0 bottom-0 w-[380px] border-l backdrop-blur-md flex flex-col z-30 animate-in slide-in-from-right duration-300 h-full ${getThemeCardClass()}`}>
           
           {/* Sidebar Header with Import button */}
-          <div className="px-4 py-3.5 border-b border-neutral-900 flex items-center justify-between select-none shrink-0">
+          <div className="px-4 py-3.5 border-b border-neutral-900/40 flex items-center justify-between select-none shrink-0">
             <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-neutral-400">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
