@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Book, Bookmark, Highlight, VocabularyItem, ReaderSettings } from "../types";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getAllBooks,
   getBook,
@@ -22,9 +23,12 @@ import { LibraryView } from "./LibraryView";
 import { ReaderCanvas } from "./ReaderCanvas";
 
 export function ReaderDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookId = searchParams?.get("bookId") || null;
+
   const [mounted, setMounted] = useState(false);
   const [books, setBooks] = useState<Book[]>([]);
-  const [activeBook, setActiveBook] = useState<Book | null>(null);
 
   // Reader Settings State
   const [settings, setSettings] = useState<ReaderSettings>(() => getReaderSettings());
@@ -33,6 +37,27 @@ export function ReaderDashboard() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
+
+  const activeBook = useMemo(() => {
+    return books.find((b) => b.id === bookId) || null;
+  }, [books, bookId]);
+
+  const hasPushedBookRef = useRef(false);
+
+  // Selection handler to sync state to browser URL and history
+  const handleSelectBook = (book: Book | null) => {
+    if (book) {
+      router.push(`/reader?bookId=${book.id}`);
+      hasPushedBookRef.current = true;
+    } else {
+      if (hasPushedBookRef.current) {
+        router.back();
+      } else {
+        router.replace(`/reader`);
+      }
+      hasPushedBookRef.current = false;
+    }
+  };
 
   // Load all books on mount
   useEffect(() => {
@@ -51,12 +76,6 @@ export function ReaderDashboard() {
     try {
       const list = await getAllBooks();
       setBooks(list);
-      
-      // Update active book reference if open
-      if (activeBook) {
-        const updated = await getBook(activeBook.id);
-        setActiveBook(updated);
-      }
     } catch (err) {
       console.error("Failed to load books from IndexedDB:", err);
     }
@@ -215,7 +234,7 @@ export function ReaderDashboard() {
       <ReaderCanvas
         book={activeBook}
         onClose={() => {
-          setActiveBook(null);
+          handleSelectBook(null);
           refreshBooks(); // Update main library dashboard listings
         }}
         onUpdateProgress={handleUpdateProgress}
@@ -277,7 +296,7 @@ export function ReaderDashboard() {
       <main className="flex-1 flex z-10 overflow-hidden relative">
         <LibraryView
           books={books}
-          onSelectBook={setActiveBook}
+          onSelectBook={handleSelectBook}
           onRefreshBooks={refreshBooks}
         />
       </main>

@@ -159,7 +159,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
       }
     };
     loadChapters();
-  }, [book]);
+  }, [book.id]);
 
   // Load active chapter HTML
   useEffect(() => {
@@ -410,6 +410,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         e.preventDefault();
         container.scrollBy({ left: -scrollStep, behavior: "smooth" });
       } else if (e.key === "Escape") {
+        clearTemporaryHighlight();
         setSelectedText("");
         setSelectionBox(null);
       }
@@ -444,7 +445,43 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     };
   }, [settings.writingMode, isLoading]);
 
+  // Temporary highlight using CSS Custom Highlight API (or native selection fallback)
+  const tempHighlightRangeRef = useRef<Range | null>(null);
 
+  const clearTemporaryHighlight = () => {
+    // Clear CSS Custom Highlight if supported
+    if (typeof CSS !== "undefined" && "highlights" in CSS) {
+      (CSS as any).highlights.delete("reader-temp-highlight");
+    }
+    tempHighlightRangeRef.current = null;
+    // Also clear native selection
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const applyTemporaryHighlight = (selection: Selection) => {
+    if (selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0).cloneRange();
+    tempHighlightRangeRef.current = range;
+
+    // Use CSS Custom Highlight API if available (Chrome 105+, Edge 105+)
+    if (typeof CSS !== "undefined" && "highlights" in CSS) {
+      try {
+        const highlight = new (window as any).Highlight(range);
+        (CSS as any).highlights.set("reader-temp-highlight", highlight);
+      } catch (err) {
+        // Fallback: just keep native selection visible
+      }
+    }
+    // If CSS Custom Highlight API not available, the native ::selection stays visible as fallback
+  };
+
+  // Clear temporary highlight on chapter changes / unmount
+  useEffect(() => {
+    return () => {
+      clearTemporaryHighlight();
+    };
+  }, [currentChapterIndex]);
 
   // Text Selection / Highlight Handler
   const handleMouseUp = () => {
@@ -465,12 +502,16 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
           top: rect.top - 45 + window.scrollY,
           left: rect.left + rect.width / 2 - 80 + window.scrollX,
         });
+
+        // Apply the temporary highlight (keeps native selection as fallback)
+        applyTemporaryHighlight(selection);
       } catch (err) {
         console.error("Failed to calculate selection position:", err);
       }
     } else {
       // Clear selection box if clicked elsewhere, unless the highlight form is open
       if (!showHighlightForm) {
+        clearTemporaryHighlight();
         setSelectedText("");
         setSelectionBox(null);
       }
@@ -510,6 +551,10 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   // Highlight creation helper
   const handleCreateHighlight = (color: "yellow" | "pink" | "blue" | "green") => {
     if (!selectedText) return;
+
+    // Remove temporary highlight node so it does not conflict with permanent highlights rendering
+    clearTemporaryHighlight();
+
     onAddHighlight({
       bookId: book.id,
       chapterIndex: currentChapterIndex,
@@ -782,7 +827,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
                   lineHeight: settings.lineHeight,
                   writingMode: settings.writingMode === "vertical" ? "vertical-rl" : "horizontal-tb",
                 }}
-                className={`text-justify select-text select-none md:select-text break-words pr-2 ${getFontClass()} ${
+                className={`text-justify select-text break-words pr-2 ${getFontClass()} ${
                   settings.writingMode === "vertical" ? "vertical-rl" : ""
                 }`}
                 dangerouslySetInnerHTML={{ __html: chapterContentHtml }}
@@ -805,6 +850,16 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
                   page-break-inside: avoid !important;
                   display: block !important;
                   margin: auto !important;
+                }
+                /* CSS Custom Highlight API styling for temporary highlight preview */
+                ::highlight(reader-temp-highlight) {
+                  background-color: rgba(59, 130, 246, 0.25);
+                  color: inherit;
+                }
+                /* Native selection fallback styling */
+                #reader-content-area ::selection {
+                  background-color: rgba(59, 130, 246, 0.3);
+                  color: inherit;
                 }
               `}</style>
             </>
