@@ -754,7 +754,9 @@ export function VideoPlayerDashboard() {
           <div
             onMouseEnter={handleSubtitlesMouseEnter}
             onMouseLeave={handleSubtitlesMouseLeave}
-            className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-full max-w-[85%] text-center px-4 py-2 pointer-events-auto select-text no-lookup z-20"
+            className={`absolute left-1/2 -translate-x-1/2 w-full max-w-[85%] text-center px-4 py-2 pointer-events-auto select-text no-lookup z-20 transition-all duration-500 ease-in-out ${
+              showControls ? "bottom-[22%]" : "bottom-[8%]"
+            }`}
           >
             <div
               style={{
