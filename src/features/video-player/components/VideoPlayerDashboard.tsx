@@ -19,6 +19,12 @@ export function VideoPlayerDashboard() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [subtitles, setSubtitles] = useState<SubtitleCue[]>([]);
   const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
+
+  // Audio/Subtitle Track list states
+  const [audioTracks, setAudioTracks] = useState<any[]>([]);
+  const [activeAudioTrackIndex, setActiveAudioTrackIndex] = useState<number>(0);
+  const [textTracks, setTextTracks] = useState<any[]>([]);
+  const [activeTextTrackIndex, setActiveTextTrackIndex] = useState<number>(-1);
   
   // Video playback states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -241,6 +247,10 @@ export function VideoPlayerDashboard() {
     setIsPlaying(false);
     setCurrentTime(0);
     setCurrentSubtitleIndex(-1);
+    setAudioTracks([]);
+    setActiveAudioTrackIndex(0);
+    setTextTracks([]);
+    setActiveTextTrackIndex(-1);
   };
 
   // Handle Subtitle file load
@@ -286,6 +296,10 @@ export function VideoPlayerDashboard() {
     setIsPlaying(false);
     setCurrentTime(0);
     setCurrentSubtitleIndex(-1);
+    setAudioTracks([]);
+    setActiveAudioTrackIndex(0);
+    setTextTracks([]);
+    setActiveTextTrackIndex(-1);
   };
 
   // Monitor video playback time update
@@ -307,7 +321,132 @@ export function VideoPlayerDashboard() {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      
+      // Load built-in text tracks
+      const tracks: any[] = [];
+      const vTextTracks = videoRef.current.textTracks;
+      for (let i = 0; i < vTextTracks.length; i++) {
+        const t = vTextTracks[i];
+        tracks.push({
+          index: i,
+          label: t.label || `Track ${i + 1} (${t.language || "Unknown"})`,
+          language: t.language,
+          kind: t.kind,
+        });
+      }
+      setTextTracks(tracks);
+      
+      // Load built-in audio tracks
+      const vAudioTracks = (videoRef.current as any).audioTracks;
+      if (vAudioTracks) {
+        const aTracks: any[] = [];
+        for (let i = 0; i < vAudioTracks.length; i++) {
+          const t = vAudioTracks[i];
+          if (t.enabled) setActiveAudioTrackIndex(i);
+          aTracks.push({
+            index: i,
+            label: t.label || `Audio ${i + 1} (${t.language || "Unknown"})`,
+            language: t.language,
+            enabled: t.enabled,
+          });
+        }
+        setAudioTracks(aTracks);
+      }
     }
+  };
+
+  const selectTextTrack = (index: number) => {
+    if (!videoRef.current) return;
+    const tracks = videoRef.current.textTracks;
+    
+    // Disable all tracks first
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i].mode = "disabled";
+    }
+    
+    if (index === -1) {
+      setActiveTextTrackIndex(-1);
+      // Restore external or demo subtitles
+      if (subtitleFile) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          if (text) {
+            const cues = parseSubtitles(text);
+            setSubtitles(cues);
+          }
+        };
+        reader.readAsText(subtitleFile);
+      } else if (isDemoMode) {
+        // Japanese tale "Momotaro" demo subs mapped to early parts of Big Buck Bunny
+        const DEMO_SUBTITLES: SubtitleCue[] = [
+          { id: "1", startTime: 1.0, endTime: 5.0, text: "昔々、あるところに、おじいさんとおばあさんが住んでいました。" },
+          { id: "2", startTime: 6.0, endTime: 11.0, text: "おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。" },
+          { id: "3", startTime: 12.0, endTime: 17.0, text: "おばあさんが川で洗濯をしていると、大きな桃が流れてきました。" },
+          { id: "4", startTime: 18.0, endTime: 22.0, text: "「おや、これは大きな桃だこと。持って帰っておじいさんと食べましょう」" },
+          { id: "5", startTime: 23.0, endTime: 28.0, text: "おばあさんが桃を家に持ち帰ると、桃の中から元気な男の子が生まれました。" },
+          { id: "6", startTime: 29.0, endTime: 34.0, text: "二人は大喜びで、男の子を「桃太郎」と名付けました。" },
+          { id: "7", startTime: 35.0, endTime: 40.0, text: "桃太郎はどんどん大きくなり、力持ちで優しい男の子に育ちました。" },
+          { id: "8", startTime: 41.0, endTime: 46.0, text: "ある日、桃太郎は村を荒らす鬼を退治するため、鬼ヶ島へ行くことを決意しました。" },
+          { id: "9", startTime: 47.0, endTime: 52.0, text: "おばあさんは美味しいきびだんごを作って、桃太郎に持たせました。" },
+          { id: "10", startTime: 53.0, endTime: 58.0, text: "旅の途中で、犬、猿、キジに出会い、きびだんごを分けてあげて仲間になりました。" },
+          { id: "11", startTime: 59.0, endTime: 65.0, text: "みんなで力を合わせて鬼の城に乗り込み、鬼たちを見事に退治しました。" },
+          { id: "12", startTime: 66.0, endTime: 72.0, text: "鬼から宝物を取り戻した桃太郎たちは、元気に村へ帰り、幸せに暮らしました。" }
+        ];
+        setSubtitles(DEMO_SUBTITLES);
+      } else {
+        setSubtitles([]);
+      }
+      return;
+    }
+    
+    const activeTrack = tracks[index];
+    activeTrack.mode = "hidden"; // Hide native display
+    setActiveTextTrackIndex(index);
+    
+    const extractCues = () => {
+      const trackCues = activeTrack.cues;
+      if (trackCues) {
+        const parsedCues: SubtitleCue[] = [];
+        for (let i = 0; i < trackCues.length; i++) {
+          const cue = trackCues[i] as any;
+          parsedCues.push({
+            id: cue.id || String(i),
+            startTime: cue.startTime,
+            endTime: cue.endTime,
+            text: cue.text || "",
+          });
+        }
+        setSubtitles(parsedCues);
+        setCurrentSubtitleIndex(-1);
+      }
+    };
+    
+    if (activeTrack.cues && activeTrack.cues.length > 0) {
+      extractCues();
+    } else {
+      let attempts = 0;
+      const checkCues = setInterval(() => {
+        attempts++;
+        if (activeTrack.cues && activeTrack.cues.length > 0) {
+          extractCues();
+          clearInterval(checkCues);
+        } else if (attempts > 30) {
+          clearInterval(checkCues);
+        }
+      }, 100);
+    }
+  };
+
+  const selectAudioTrack = (index: number) => {
+    if (!videoRef.current) return;
+    const tracks = (videoRef.current as any).audioTracks;
+    if (!tracks) return;
+    
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i].enabled = i === index;
+    }
+    setActiveAudioTrackIndex(index);
   };
 
   // Sync volume with HTMLVideoElement
@@ -990,6 +1129,47 @@ export function VideoPlayerDashboard() {
                 </button>
               )}
             </div>
+
+            {/* Audio Track selection */}
+            {audioTracks.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-neutral-500 uppercase select-none">Audio</span>
+                <select
+                  value={activeAudioTrackIndex}
+                  onChange={(e) => {
+                    selectAudioTrack(parseInt(e.target.value, 10));
+                  }}
+                  className="bg-neutral-900 border border-neutral-800 rounded-xl px-2 py-1 text-xs text-neutral-200 font-semibold cursor-pointer outline-none focus:border-neutral-700"
+                >
+                  {audioTracks.map((track) => (
+                    <option key={track.index} value={track.index} className="bg-neutral-950">
+                      {track.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Subtitle Track selection */}
+            {textTracks.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-neutral-500 uppercase select-none">Subs</span>
+                <select
+                  value={activeTextTrackIndex}
+                  onChange={(e) => {
+                    selectTextTrack(parseInt(e.target.value, 10));
+                  }}
+                  className="bg-neutral-900 border border-neutral-800 rounded-xl px-2 py-1 text-xs text-neutral-200 font-semibold cursor-pointer outline-none focus:border-neutral-700"
+                >
+                  <option value="-1" className="bg-neutral-950">External / Demo</option>
+                  {textTracks.map((track) => (
+                    <option key={track.index} value={track.index} className="bg-neutral-950">
+                      {track.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Speed selection */}
             <div className="flex items-center gap-1.5">
