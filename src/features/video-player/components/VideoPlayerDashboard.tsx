@@ -893,7 +893,7 @@ export function VideoPlayerDashboard() {
           <div
             onMouseEnter={handleSubtitlesMouseEnter}
             onMouseLeave={handleSubtitlesMouseLeave}
-            className={`absolute left-1/2 -translate-x-1/2 w-full max-w-[85%] text-center px-4 py-2 pointer-events-auto select-text no-lookup z-20 transition-all duration-500 ease-in-out ${
+            className={`absolute left-1/2 -translate-x-1/2 w-full max-w-[85%] text-center px-4 py-2 pointer-events-auto select-text z-20 transition-all duration-500 ease-in-out ${
               showControls ? "bottom-[22%]" : "bottom-[8%]"
             }`}
           >
@@ -1398,7 +1398,7 @@ export function VideoPlayerDashboard() {
                       </div>
                     </div>
                     
-                    <p className={`text-[12px] leading-relaxed break-words no-lookup ${
+                    <p className={`text-[12px] leading-relaxed break-words ${
                       fontFamily === "serif" ? "font-serif" : "font-sans"
                     }`}>
                       {cue.text}

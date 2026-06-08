@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface DictionaryEntry {
   expression: string;
@@ -39,6 +40,21 @@ export const DictionaryPopup: React.FC = () => {
   
   const popupRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  // Initialize portal target and listen to fullscreen changes
+  useEffect(() => {
+    setPortalTarget(document.body);
+
+    const handleFullscreenChange = () => {
+      setPortalTarget((document.fullscreenElement as HTMLElement) || document.body);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   // Monitor mouse movements to get the coordinates of the cursor
   useEffect(() => {
@@ -365,7 +381,7 @@ export const DictionaryPopup: React.FC = () => {
     return null;
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !portalTarget) return null;
 
   // Calculate coordinates to prevent popup clipping at screen edges
   const width = 450;
@@ -388,7 +404,7 @@ export const DictionaryPopup: React.FC = () => {
   // If too close to top
   if (top < 10) top = 10;
 
-  return (
+  return createPortal(
     <div
       ref={popupRef}
       style={{
@@ -538,6 +554,7 @@ export const DictionaryPopup: React.FC = () => {
           user-select: none;
         }
       `}</style>
-    </div>
+    </div>,
+    portalTarget
   );
 };
