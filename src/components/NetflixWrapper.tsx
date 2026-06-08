@@ -358,7 +358,7 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Page Content */}
-      <div className={`flex-1 flex flex-col ${isLandingPage ? "" : "pt-16"}`}>
+      <div className={`flex-1 flex flex-col ${isLandingPage || pathname === "/video-player" ? "h-screen w-screen overflow-hidden" : "pt-16"}`}>
         {children}
       </div>
 
