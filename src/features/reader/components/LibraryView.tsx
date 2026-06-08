@@ -2,61 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Book } from "../types";
 import { saveBook, deleteBook } from "../utils/db";
 
-// Sleek abstract SVG gradients for book covers
-const CAT_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280" viewBox="0 0 200 280"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23145c43"/><stop offset="100%" stop-color="%230a2f22"/></linearGradient></defs><rect width="200" height="280" fill="url(%23g)"/><rect x="15" y="15" width="170" height="250" fill="none" stroke="%23c2a649" stroke-width="1.5" opacity="0.3"/><circle cx="100" cy="110" r="45" fill="none" stroke="%23c2a649" stroke-width="1" opacity="0.2"/><path d="M 85,100 Q 100,75 115,100 Q 130,125 100,140 Q 70,125 85,100 Z" fill="none" stroke="%23c2a649" stroke-width="1.5" opacity="0.4"/><text x="100" y="210" font-family="serif" font-weight="bold" font-size="16" fill="%23e8d8a7" text-anchor="middle">吾輩は猫である</text><text x="100" y="235" font-family="sans-serif" font-size="9" fill="%23c2a649" letter-spacing="1.5" text-anchor="middle">夏目漱石</text><text x="100" y="55" font-family="monospace" font-size="7" fill="%23c2a649" letter-spacing="3" text-anchor="middle">CLASSIC IMMERSION</text></svg>`;
-
-const MELOS_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280" viewBox="0 0 200 280"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%239a1c1c"/><stop offset="100%" stop-color="%233b0707"/></linearGradient></defs><rect width="200" height="280" fill="url(%23g)"/><rect x="15" y="15" width="170" height="250" fill="none" stroke="%23e2bc74" stroke-width="1.5" opacity="0.3"/><circle cx="100" cy="110" r="50" fill="none" stroke="%23e2bc74" stroke-width="1" opacity="0.15"/><path d="M 70,110 L 130,110 M 100,80 L 100,140" stroke="%23e2bc74" stroke-width="1.5" opacity="0.3"/><text x="100" y="210" font-family="serif" font-weight="bold" font-size="16" fill="%23f6e5c3" text-anchor="middle">走れメロス</text><text x="100" y="235" font-family="sans-serif" font-size="9" fill="%23e2bc74" letter-spacing="1.5" text-anchor="middle">太宰 治</text><text x="100" y="55" font-family="monospace" font-size="7" fill="%23e2bc74" letter-spacing="3" text-anchor="middle">CLASSIC IMMERSION</text></svg>`;
-
-// Content for Sample 1: 吾輩は猫である (First Chapter)
-const CAT_BOOK_TEXT = `吾輩は猫である
-夏目漱石
-
-第一章
-
-　吾輩（わがはい）は猫である。名前はまだ無い。
-　どこで生れたかとんと見当（けんとう）がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。しかもあとで聞くとそれは書生という人間中で一番獰悪（どうあく）な種族であったそうだ。この書生というのは時々我々を捕（つかま）えて煮（に）て食うという話である。しかしその当時は何という考もなかったから別段恐ろしいとも思わなかった。ただ彼の掌（てのひら）に載せられてスーと持ち上げられた時、何だかフワフワした感じがあったばかりである。掌の上で少し落ちついて書生の顔を見たのがいわゆる人間というものの見始（みはじめ）であろう。この時妙なものだと思った感じが今でも残っている。第一毛をもって装飾されべきはずの顔がつるつるしてまるで薬缶（やかん）だ。その後（ご）猫にもだいぶ逢（あ）ったがこんな片輪（かたわ）には一度も出会（でくわ）した事がない。のみならず顔の真中があまりに突起している。そうしてその穴の中から時々ぷうぷうと煙（けむり）を吹く。どうも咽（む）せぽくて実に弱った。これが人間の飲む煙草（たばこ）というものである事はようやくこの頃（ころ）知った。
-
-第二章
-
-　この書生の掌の裏（うち）でしばらくはよい心持に坐（すわ）っておったが、しばらくすると非常な速力で運転し始めた。書生が動くのか自分だけが動くのか分らないが無暗（むあみ）に眼が廻る。胸が悪くなる。到底（とうてい）助からないと思っていると、どさりと音がして眼から火が出た。気がついて見ると書生はもういない。たくさんおった兄弟も一匹も見えぬ。おまけに肝心（かんじん）の母親さえ姿を隠してしまった。上（うえ）は極めて明るい所へ出た。眼をこすってよく見て見ると、吾輩は書生の家からつまみ出されて急に荒野（あらの）へ抛（ほう）り出されたのである。
-　行く手を望むと竹垣が立っている。その垣の崩れた所から、ようやくの思いで一軒の邸内（ていだん）へ忍び込んだ。これがのちに吾輩の棲家（すみか）となる教師の家であった。吾輩はここへ忍び込んで一命を取り留めたのである。
-
-第三章
-
-　吾輩が教師の家に住み込んでから、早くも一年が経とうとしている。
-　主人はめったに我々猫と話をしない。書斎に籠もってばかりいる。何をしているかと思うと、ただ居眠りをしている。吾輩の主人はなかなかの怠け者である。しかし主人は自分を学者だと思っているらしい。時々妙な英語を大きな声で読んでいる。
-　吾輩は毎日のように主人の膝（ひざ）の上に載って、その寝顔を観察するのを楽しみとしている。人間というのはまことに不思議な生き物である。
-`;
-
-// Content for Sample 2: 走れメロス (Full Text / Condensed Major chapters)
-const MELOS_BOOK_TEXT = `走れメロス
-太宰治
-
-第一章
-
-　メロスは激怒した。必ず、かの邪智暴虐（じゃちぼうぎゃく）の王を除かなければならぬと決意した。メロスには政治がわからぬ。メロスは、村の牧人である。笛を吹き、羊と遊んで暮して来た。けれども邪悪に対しては、人一倍に敏感であった。きょう未明メロスは村を出発し、野を越え山越え、十里はなれた此（こ）のシラクスの市にやって来た。メロスには父も母もない。女房もない。十六の、内気な妹と二人暮らしだ。この妹は、近々、一人の律気な牧人を婿（むこ）として迎える事になっていた。婚礼の日も間近なのである。メロスは、それゆえ、花嫁の衣裳やら婚礼の御馳走やらを買いに、はるばる市にやって来たのである。
-　買い物を終り、街を歩いているうちに、メロスは街の様子がひどく寂しいのに気づいた。
-
-第二章
-
-　メロスは、シラクスの親友であるセリヌンティウスを訪ねた。セリヌンティウスは石工（いしく）である。二人は固い友情で結ばれていた。
-　しかし、メロスは王の城に忍び込んだ疑いにより、捉えられてしまった。王の前に引き出されたメロスは、王の残虐さをなじった。王は冷笑して言った。「お前を死刑にしてやる。」
-　メロスは願った。「私を殺す前に、三日間の日限を与えて下さい。たった一人の妹に花婿を迎えさせ、婚礼を挙げさせてやりたいのです。三日のうちに、私は必ずここに戻ってきます。」
-　王は信じなかった。「身代わりを立てるというのか？」
-　メロスは言った。「ここにいるセリヌンティウスを身代わりにしてください。私が三日目に戻らなければ、彼を殺してください。」
-　セリヌンティウスは無言でうなずき、人質となることを引き受けた。メロスは解放され、妹のいる村へと走り出した。
-
-第三章
-
-　メロスは夜通し走り続け、翌朝村に着いた。妹の婚礼を急いで挙げさせ、三日目の朝、また市に向けて走り出した。
-　道中、数々の困難がメロスを襲った。大雨による川の氾濫、橋の流出、そして山賊の襲撃。メロスは満身創痍になりながらも、シラクスの市を目指して走り続けた。
-　しかし、太陽は刻一刻と沈みかけていく。疲労と渇きで倒れそうになるメロス。
-　「私は信じられている。親友が私の帰りを待っている！」
-　メロスは最後の力を振り絞ってシラクスの刑場へと飛び込んだ。まさにセリヌンティウスが磔台（はりつけだい）に上げられようとするその瞬間であった。
-　「待て！私がメロスだ！戻ってきたぞ！」
-　群衆から歓声が上がった。王は二人の友情の美しさに打たれ、メロスを許し、自らも彼らの仲間に入れてほしいと頼むのだった。
-`;
-
 interface LibraryViewProps {
   onSelectBook: (book: Book) => void;
   books: Book[];
@@ -72,56 +17,21 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [isSeeding, setIsSeeding] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  // Seed sample books if database is empty
+  // Clean up default books if they exist in the DB
   useEffect(() => {
-    const seedSampleBooks = async () => {
-      if (books.length === 0 && !isSeeding) {
-        setIsSeeding(true);
-        try {
-          const encoder = new TextEncoder();
-          
-          // Seed "吾輩は猫である"
-          const catData = encoder.encode(CAT_BOOK_TEXT).buffer;
-          const catBook: Book = {
-            id: "sample-cat-book",
-            title: "吾輩は猫である",
-            author: "夏目漱石",
-            coverUrl: CAT_COVER_SVG,
-            fileType: "txt",
-            fileData: catData,
-            addedAt: Date.now() - 100000,
-            currentChapterIndex: 0,
-            currentProgress: 0,
-          };
-          await saveBook(catBook);
-
-          // Seed "走れメロス"
-          const melosData = encoder.encode(MELOS_BOOK_TEXT).buffer;
-          const melosBook: Book = {
-            id: "sample-melos-book",
-            title: "走れメロス",
-            author: "太宰治",
-            coverUrl: MELOS_COVER_SVG,
-            fileType: "txt",
-            fileData: melosData,
-            addedAt: Date.now(),
-            currentChapterIndex: 0,
-            currentProgress: 0,
-          };
-          await saveBook(melosBook);
-
-          // Refresh parent state list
-          onRefreshBooks();
-        } catch (err) {
-          console.error("Failed to seed sample books:", err);
-        } finally {
-          setIsSeeding(false);
-        }
+    const cleanDefaultBooks = async () => {
+      let changed = false;
+      if (books.some(b => b.id === "sample-cat-book" || b.id === "sample-melos-book")) {
+        await deleteBook("sample-cat-book");
+        await deleteBook("sample-melos-book");
+        changed = true;
+      }
+      if (changed) {
+        onRefreshBooks();
       }
     };
-    
-    seedSampleBooks();
-  }, [books, isSeeding]);
+    cleanDefaultBooks();
+  }, [books]);
 
   const handleFileUpload = async (file: File) => {
     setUploadError("");
@@ -205,27 +115,27 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-y-auto max-w-5xl w-full mx-auto gap-8 relative select-none">
+    <div className="flex-1 flex flex-col p-6 pt-24 md:pt-28 overflow-y-auto max-w-5xl w-full mx-auto gap-8 relative select-none">
       
       {/* Page Title Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-900 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-white font-sans">
-            読書 <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Library Workspace</span>
+          <h2 className="text-2xl font-extrabold tracking-tight text-white font-sans flex items-center gap-2">
+            <span className="text-[#E50914] font-serif">和</span> Ebook Library
           </h2>
-          <p className="text-xs text-neutral-500 mt-1">
-            Store and read EPUB/TXT books locally. Hover words with Shift for dictionary lookups, vertical layout supported.
+          <p className="text-xs text-zinc-400 mt-1">
+            Immerse in Japanese literature. Upload custom EPUB or plain TXT files. Shift + hover words for popups.
           </p>
         </div>
 
         {/* Manual Browse button */}
-        <label className="px-4 py-2.5 rounded-xl border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-xs font-semibold text-neutral-350 hover:text-white transition flex items-center gap-2 cursor-pointer backdrop-blur-sm shadow-md">
+        <label className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 hover:border-zinc-700 text-xs font-semibold text-zinc-200 hover:text-white transition flex items-center gap-2 cursor-pointer backdrop-blur-md shadow-lg duration-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Import EPUB / TXT
+          Import Book File
           <input
             type="file"
             accept=".epub,.txt"
@@ -245,55 +155,71 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       )}
 
       {/* Upload Drop Zone card */}
-      <div
+      <label
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border border-dashed rounded-3xl p-8 bg-neutral-950/20 text-center backdrop-blur-sm transition duration-300 flex flex-col justify-center items-center gap-4 ${
+        className={`border-2 border-dashed rounded-3xl p-10 bg-zinc-900/10 text-center backdrop-blur-md transition-all duration-500 flex flex-col justify-center items-center gap-4 cursor-pointer shadow-lg group/zone ${
           isDragOver
-            ? "border-blue-500 bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.1)]"
-            : "border-neutral-900 hover:border-neutral-800"
+            ? "border-[#E50914] bg-red-500/5 shadow-[0_0_45px_rgba(229,9,20,0.15)]"
+            : "border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/20"
         }`}
       >
-        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center transition ${isDragOver ? "bg-blue-950/40 border-blue-800 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-500"}`}>
-          📚
+        <input
+          type="file"
+          accept=".epub,.txt"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileUpload(file);
+          }}
+        />
+        <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition-all duration-300 ${
+          isDragOver ? "bg-red-950/40 border-red-800 text-red-500 scale-110 shadow-lg shadow-red-950/50" : "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover/zone:scale-105"
+        }`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
         </div>
-        <div>
-          <p className="text-xs font-semibold text-neutral-200">Drag and drop book files here</p>
-          <p className="text-[10px] text-neutral-550 mt-1 font-mono">Supports reflowable EPUB or plain TXT format</p>
+        <div className="flex flex-col gap-1 select-none">
+          <p className="text-sm font-bold text-zinc-150">Drag and drop book files here, or <span className="text-[#E50914] group-hover/zone:underline">browse files</span></p>
+          <p className="text-xs text-zinc-555 font-mono">Supports EPUB or plain TXT format</p>
         </div>
-      </div>
+      </label>
 
       {/* Book Grid */}
-      <div className="flex flex-col gap-4">
-        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">Your Books ({books.length})</h3>
+      <div className="flex flex-col gap-5 animate-in fade-in duration-500">
+        <h3 className="text-xs font-bold text-zinc-450 uppercase tracking-widest font-mono">Your Books ({books.length})</h3>
         
         {isSeeding && books.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-neutral-550 text-xs">
-            <div className="w-5 h-5 border-2 border-t-transparent border-blue-500 rounded-full animate-spin" />
-            <span>Seeding classic Aozora Bunko books...</span>
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-zinc-500 text-sm bg-zinc-950/20 rounded-3xl border border-zinc-900/60">
+            <div className="w-6 h-6 border-2 border-t-transparent border-[#E50914] rounded-full animate-spin" />
+            <span className="font-mono text-xs text-zinc-400">Seeding classic Aozora Bunko library...</span>
           </div>
         ) : books.length === 0 ? (
-          <p className="text-xs text-neutral-600 italic py-16 text-center">Your library is currently empty.</p>
+          <div className="py-20 text-center bg-zinc-950/20 rounded-3xl border border-zinc-900/60 animate-in fade-in duration-300">
+            <p className="text-sm text-zinc-500 italic">Your library is currently empty.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {books.map((book) => (
               <div
                 key={book.id}
                 onClick={() => onSelectBook(book)}
-                className="group relative flex flex-col bg-neutral-950/40 border border-neutral-900/60 rounded-2xl p-3 hover:bg-neutral-900/30 hover:border-neutral-800 transition-all duration-300 cursor-pointer shadow-lg transform hover:-translate-y-1 hover:shadow-2xl"
+                className="group relative flex flex-col bg-zinc-950/40 border border-zinc-900/60 rounded-2xl p-3 hover:bg-zinc-900/25 hover:border-zinc-800 transition-all duration-300 cursor-pointer shadow-lg transform hover:-translate-y-1 hover:shadow-2xl"
               >
                 {/* Delete button (shows on hover) */}
                 <button
                   onClick={(e) => handleDelete(e, book.id)}
-                  className="absolute top-2 right-2 z-20 w-6 h-6 rounded-lg bg-neutral-950/80 hover:bg-red-500/20 hover:text-red-400 border border-neutral-800 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-150 cursor-pointer"
+                  className="absolute top-2 right-2 z-20 w-7 h-7 rounded-lg bg-zinc-950/85 hover:bg-red-650/25 hover:text-red-400 border border-zinc-850 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 cursor-pointer shadow-md"
                   title="Delete Book"
                 >
                   ❌
                 </button>
 
                 {/* Cover Image container */}
-                <div className="aspect-[3/4] w-full rounded-xl overflow-hidden bg-neutral-900 border border-neutral-900 relative shadow-inner group-hover:scale-[1.02] transition duration-300">
+                <div className="aspect-[3/4] w-full rounded-xl overflow-hidden bg-zinc-900 border border-zinc-900 relative shadow-inner group-hover:scale-[1.03] transition duration-300">
                   {book.coverUrl ? (
                     <img
                       src={book.coverUrl}
@@ -302,28 +228,38 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     />
                   ) : (
                     // Fallback cover
-                    <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-950 flex flex-col justify-between p-4">
-                      <div className="text-[7px] font-mono text-neutral-500 tracking-widest uppercase">Ebook Reader</div>
-                      <div className="text-xs font-serif font-bold text-neutral-300 line-clamp-3 leading-tight">{book.title}</div>
-                      <div className="text-[9px] text-neutral-500 truncate">{book.author}</div>
+                    <div className="w-full h-full bg-gradient-to-br from-zinc-850 to-zinc-950 flex flex-col justify-between p-4">
+                      <div className="text-[7px] font-mono text-zinc-500 tracking-widest uppercase">Ebook Reader</div>
+                      <div className="text-xs font-serif font-bold text-zinc-300 line-clamp-3 leading-tight">{book.title}</div>
+                      <div className="text-[9px] text-zinc-550 truncate">{book.author}</div>
                     </div>
                   )}
 
-                  {/* Reading Progress Ribbon */}
+                  {/* Reading Progress Netflix red bar */}
                   {book.currentProgress > 0 && (
-                    <div className="absolute bottom-0 inset-x-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex items-center justify-between text-[9px] font-mono text-blue-400 font-semibold border-t border-neutral-900">
-                      <span>Progress</span>
-                      <span>{book.currentProgress}%</span>
-                    </div>
+                    <>
+                      {/* Floating progress text overlay */}
+                      <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-mono text-zinc-200 font-bold border border-white/5 opacity-80 animate-in fade-in duration-300">
+                        {book.currentProgress}% read
+                      </div>
+                      
+                      {/* Thin red bar at the bottom */}
+                      <div className="absolute bottom-0 inset-x-0 h-1.5 bg-zinc-950/60 backdrop-blur-[2px]">
+                        <div 
+                          className="h-full bg-red-600 rounded-r shadow-[0_0_8px_rgba(229,9,20,0.7)]"
+                          style={{ width: `${book.currentProgress}%` }}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
 
                 {/* Title & Author */}
                 <div className="mt-3 flex flex-col min-w-0">
-                  <h4 className="text-xs font-bold text-zinc-100 group-hover:text-white transition truncate font-sans">
+                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white transition truncate font-sans">
                     {book.title}
                   </h4>
-                  <span className="text-[10px] text-neutral-500 mt-0.5 truncate">
+                  <span className="text-[10px] text-zinc-550 mt-0.5 truncate">
                     {book.author}
                   </span>
                 </div>

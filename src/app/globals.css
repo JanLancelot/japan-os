@@ -34,3 +34,21 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.reader-header-horizontal, .reader-header-vertical {
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-header-visible="true"] .reader-header-horizontal {
+  margin-top: 64px;
+}
+
+[data-header-visible="true"] .reader-header-vertical {
+  transform: translateY(64px);
+}
+
+html[data-book-reading="true"] header.fixed.top-0 {
+  transform: translateY(-100%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

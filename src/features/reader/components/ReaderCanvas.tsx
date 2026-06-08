@@ -119,7 +119,41 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<"toc" | "styling" | "search" | "bookmarks" | "vocab">("toc");
 
+  // Controls Visibility (Premium Rework)
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoveringControlsRef = useRef(false);
 
+  useEffect(() => {
+    if (isSidebarOpen) {
+      setControlsVisible(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      return;
+    }
+
+    const resetControlsTimer = () => {
+      setControlsVisible(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+
+      if (isHoveringControlsRef.current) return;
+
+      controlsTimeoutRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 3500);
+    };
+
+    const handleMouseMoveGlobal = () => {
+      resetControlsTimer();
+    };
+
+    window.addEventListener("mousemove", handleMouseMoveGlobal);
+    resetControlsTimer();
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMoveGlobal);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isSidebarOpen]);
 
   // Text Selection Highlight Overlay States
   const [selectedText, setSelectedText] = useState("");
@@ -139,6 +173,14 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   const savedVocabExpressions = React.useMemo(() => {
     return new Set(vocabulary.map((v) => `${v.expression}::${v.reading || ""}`));
   }, [vocabulary]);
+
+  // Set attribute to notify wrapper/CSS that book reader is active/open
+  useEffect(() => {
+    document.documentElement.setAttribute("data-book-reading", "true");
+    return () => {
+      document.documentElement.removeAttribute("data-book-reading");
+    };
+  }, []);
 
   // Load Book Chapters Spine structure
   useEffect(() => {
@@ -712,11 +754,11 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     }
     switch (settings.marginSize) {
       case "compact":
-        return "px-6 py-4";
+        return "px-6 pt-20 pb-24";
       case "wide":
-        return "px-20 py-12";
+        return "px-20 pt-24 pb-28";
       default:
-        return "px-12 py-8";
+        return "px-12 pt-20 pb-24";
     }
   };
 
@@ -750,6 +792,24 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     }
   };
 
+  // Glassmorphic panel theme style resolver
+  const getPanelThemeClasses = () => {
+    switch (settings.theme) {
+      case "light":
+        return "bg-white/80 border-neutral-200 text-neutral-800 backdrop-blur-md shadow-lg";
+      case "sepia":
+        return "bg-[#f8f1e3]/85 border-[#42301c]/20 text-[#42301c] backdrop-blur-md shadow-lg";
+      case "dark":
+        return "bg-neutral-900/80 border-neutral-800/80 text-neutral-200 backdrop-blur-md shadow-2xl shadow-black/40";
+      case "midnight":
+        return "bg-[#080a10]/85 border-neutral-850/80 text-[#cbd5e1] backdrop-blur-md shadow-2xl shadow-black/40";
+      case "forest":
+        return "bg-[#111916]/85 border-emerald-950/80 text-[#cbe0d5] backdrop-blur-md shadow-2xl shadow-black/40";
+      default:
+        return "bg-neutral-900/80 border-neutral-800/80 text-neutral-200 backdrop-blur-md shadow-2xl shadow-black/40";
+    }
+  };
+
 
 
   const isVertical = settings.writingMode === "vertical";
@@ -758,9 +818,12 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     <div className={`flex-1 flex flex-col h-screen w-screen overflow-hidden relative select-text ${getThemeClasses()}`}>
       
       {/* Top Header navbar */}
-      <header className={isVertical
-        ? "absolute top-0 left-0 w-full px-6 py-4 flex items-center justify-between z-50 bg-gradient-to-b from-black/80 via-black/30 to-transparent border-none text-white"
-        : "px-6 py-3 flex items-center justify-between border-b border-current/5 shrink-0 z-50 bg-black/5 backdrop-blur-sm"}
+      <header
+        onMouseEnter={() => { isHoveringControlsRef.current = true; }}
+        onMouseLeave={() => { isHoveringControlsRef.current = false; }}
+        className={`fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-5xl z-50 border rounded-2xl px-6 py-3 flex items-center justify-between transition-all duration-500 ease-in-out ${getPanelThemeClasses()} ${
+          controlsVisible ? "translate-y-0 opacity-100" : "-translate-y-24 opacity-0 pointer-events-none"
+        }`}
       >
         <div className="flex items-center gap-3">
           <button
@@ -939,9 +1002,12 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
       </div>
 
       {/* Bottom Footer Page Control Scrubber */}
-      <footer className={isVertical
-        ? "absolute bottom-0 left-0 w-full px-6 py-4 flex flex-col gap-2 z-50 bg-gradient-to-t from-black/80 via-black/30 to-transparent border-none text-white text-[10px] font-mono"
-        : "px-6 py-2 border-t border-current/5 shrink-0 z-50 bg-black/5 text-[10px] font-mono opacity-80 flex flex-col gap-2 relative"}
+      <footer
+        onMouseEnter={() => { isHoveringControlsRef.current = true; }}
+        onMouseLeave={() => { isHoveringControlsRef.current = false; }}
+        className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-5xl z-50 border rounded-2xl px-6 py-3 flex flex-col gap-2 transition-all duration-500 ease-in-out text-[11px] font-mono ${getPanelThemeClasses()} ${
+          controlsVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
+        }`}
       >
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-1.5 select-none">

@@ -113,6 +113,11 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
     handleSelectTheme(savedTheme);
   }, []);
 
+  // Sync header visibility state to DOM
+  useEffect(() => {
+    document.documentElement.setAttribute("data-header-visible", headerVisible.toString());
+  }, [headerVisible]);
+
   const handleSelectProfile = (profile: Profile) => {
     setActiveProfile(profile);
     localStorage.setItem("japanos-active-profile", profile.id);
@@ -358,7 +363,7 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Page Content */}
-      <div className={`flex-1 flex flex-col ${isLandingPage || pathname === "/video-player" ? "h-screen w-screen overflow-hidden" : "pt-16"}`}>
+      <div className={`flex-1 flex flex-col ${isLandingPage || pathname === "/video-player" || pathname === "/reader" || pathname === "/texthooker" ? "h-screen w-screen overflow-hidden" : "pt-16"}`}>
         {children}
       </div>
 
