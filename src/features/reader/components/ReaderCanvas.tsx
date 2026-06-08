@@ -228,19 +228,23 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     const clientW = canvasContainerRef.current.clientWidth;
     setCanvasWidth(clientW);
 
-    // Minor delay to ensure browser has completed layout reflow
     requestAnimationFrame(() => {
       if (!canvasRef.current || !canvasContainerRef.current) return;
-      const scrollW = canvasRef.current.scrollWidth;
-      const clientW = canvasContainerRef.current.clientWidth;
-      const gap = 40; // matching column-gap
       
-      // Mathematically exact page count including column gaps
-      const total = Math.round((scrollW + gap) / (clientW + gap)) || 1;
-      setTotalPages(total);
-      
-      // Keep within boundaries
-      setCurrentPageIndex((prev) => Math.max(0, Math.min(total - 1, prev)));
+      if (settings.writingMode === "vertical") {
+        const scrollW = canvasRef.current.scrollWidth;
+        const clientW = canvasContainerRef.current.clientWidth;
+        const gap = 40; // matching column-gap
+        const total = Math.round((scrollW + gap) / (clientW + gap)) || 1;
+        setTotalPages(total);
+        setCurrentPageIndex((prev) => Math.max(0, Math.min(total - 1, prev)));
+      } else {
+        const scrollH = canvasContainerRef.current.scrollHeight;
+        const clientH = canvasContainerRef.current.clientHeight;
+        const total = Math.ceil(scrollH / clientH) || 1;
+        setTotalPages(total);
+        setCurrentPageIndex((prev) => Math.max(0, Math.min(total - 1, prev)));
+      }
     });
   };
 
@@ -291,22 +295,40 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
       isManualScrollRef.current = false;
     }, 150);
 
-    const scrollLeft = container.scrollLeft;
-    const scrollWidth = container.scrollWidth;
-    const clientWidth = container.clientWidth;
-    const gap = 40;
+    if (settings.writingMode === "vertical") {
+      const scrollLeft = container.scrollLeft;
+      const scrollWidth = container.scrollWidth;
+      const clientWidth = container.clientWidth;
+      const gap = 40;
 
-    const total = Math.round((scrollWidth + gap) / (clientWidth + gap)) || 1;
-    setTotalPages(total);
+      const total = Math.round((scrollWidth + gap) / (clientWidth + gap)) || 1;
+      setTotalPages(total);
 
-    const offset = Math.abs(scrollLeft);
-    const newPageIdx = Math.max(
-      0,
-      Math.min(total - 1, Math.round(offset / (clientWidth + gap)))
-    );
+      const offset = Math.abs(scrollLeft);
+      const newPageIdx = Math.max(
+        0,
+        Math.min(total - 1, Math.round(offset / (clientWidth + gap)))
+      );
 
-    if (newPageIdx !== currentPageIndex) {
-      setCurrentPageIndex(newPageIdx);
+      if (newPageIdx !== currentPageIndex) {
+        setCurrentPageIndex(newPageIdx);
+      }
+    } else {
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      const total = Math.ceil(scrollHeight / clientHeight) || 1;
+      setTotalPages(total);
+
+      const newPageIdx = Math.max(
+        0,
+        Math.min(total - 1, Math.round(scrollTop / clientHeight))
+      );
+
+      if (newPageIdx !== currentPageIndex) {
+        setCurrentPageIndex(newPageIdx);
+      }
     }
   };
 
@@ -326,16 +348,28 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     // If the change was triggered by a manual scroll, don't override the user's scroll position
     if (isManualScrollRef.current) return;
 
-    const clientW = container.clientWidth;
-    const gap = 40;
-    const pageW = clientW + gap;
-    const targetScrollLeft = settings.writingMode === "vertical" ? -currentPageIndex * pageW : currentPageIndex * pageW;
+    if (settings.writingMode === "vertical") {
+      const clientW = container.clientWidth;
+      const gap = 40;
+      const pageW = clientW + gap;
+      const targetScrollLeft = -currentPageIndex * pageW;
 
-    if (Math.abs(container.scrollLeft - targetScrollLeft) > 5) {
-      container.scrollTo({
-        left: targetScrollLeft,
-        behavior: justLoadedRef.current ? "auto" : "smooth"
-      });
+      if (Math.abs(container.scrollLeft - targetScrollLeft) > 5) {
+        container.scrollTo({
+          left: targetScrollLeft,
+          behavior: justLoadedRef.current ? "auto" : "smooth"
+        });
+      }
+    } else {
+      const clientH = container.clientHeight;
+      const targetScrollTop = currentPageIndex * clientH;
+
+      if (Math.abs(container.scrollTop - targetScrollTop) > 5) {
+        container.scrollTo({
+          top: targetScrollTop,
+          behavior: justLoadedRef.current ? "auto" : "smooth"
+        });
+      }
     }
     justLoadedRef.current = false;
   }, [currentPageIndex, settings.writingMode, isLoading]);
@@ -344,24 +378,34 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   const handleNextPage = () => {
     const container = canvasContainerRef.current;
     if (!container) return;
-    const clientW = container.clientWidth;
-    const gap = 40;
-    const step = clientW + gap;
 
-    const currentScroll = Math.abs(container.scrollLeft);
-    const maxScroll = container.scrollWidth - clientW;
+    if (settings.writingMode === "vertical") {
+      const clientW = container.clientWidth;
+      const gap = 40;
+      const step = clientW + gap;
+      const currentScroll = Math.abs(container.scrollLeft);
+      const maxScroll = container.scrollWidth - clientW;
 
-    if (currentScroll < maxScroll - 10) {
-      if (settings.writingMode === "vertical") {
+      if (currentScroll < maxScroll - 10) {
         container.scrollBy({ left: -step, behavior: "smooth" });
       } else {
-        container.scrollBy({ left: step, behavior: "smooth" });
+        if (currentChapterIndex < chapters.length - 1) {
+          setCurrentChapterIndex(prev => prev + 1);
+          setCurrentPageIndex(0);
+        }
       }
     } else {
-      // Go to next chapter
-      if (currentChapterIndex < chapters.length - 1) {
-        setCurrentChapterIndex(prev => prev + 1);
-        setCurrentPageIndex(0);
+      const clientH = container.clientHeight;
+      const currentScroll = container.scrollTop;
+      const maxScroll = container.scrollHeight - clientH;
+
+      if (currentScroll < maxScroll - 10) {
+        container.scrollBy({ top: clientH, behavior: "smooth" });
+      } else {
+        if (currentChapterIndex < chapters.length - 1) {
+          setCurrentChapterIndex(prev => prev + 1);
+          setCurrentPageIndex(0);
+        }
       }
     }
   };
@@ -369,23 +413,32 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   const handlePrevPage = () => {
     const container = canvasContainerRef.current;
     if (!container) return;
-    const clientW = container.clientWidth;
-    const gap = 40;
-    const step = clientW + gap;
 
-    const currentScroll = Math.abs(container.scrollLeft);
+    if (settings.writingMode === "vertical") {
+      const clientW = container.clientWidth;
+      const gap = 40;
+      const step = clientW + gap;
+      const currentScroll = Math.abs(container.scrollLeft);
 
-    if (currentScroll > 10) {
-      if (settings.writingMode === "vertical") {
+      if (currentScroll > 10) {
         container.scrollBy({ left: step, behavior: "smooth" });
       } else {
-        container.scrollBy({ left: -step, behavior: "smooth" });
+        if (currentChapterIndex > 0) {
+          setCurrentChapterIndex(prev => prev - 1);
+          setCurrentPageIndex(9999);
+        }
       }
     } else {
-      // Go to previous chapter
-      if (currentChapterIndex > 0) {
-        setCurrentChapterIndex(prev => prev - 1);
-        setCurrentPageIndex(9999);
+      const clientH = container.clientHeight;
+      const currentScroll = container.scrollTop;
+
+      if (currentScroll > 10) {
+        container.scrollBy({ top: -clientH, behavior: "smooth" });
+      } else {
+        if (currentChapterIndex > 0) {
+          setCurrentChapterIndex(prev => prev - 1);
+          setCurrentPageIndex(9999);
+        }
       }
     }
   };
@@ -401,15 +454,27 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
       const container = canvasContainerRef.current;
       if (!container) return;
 
-      const scrollStep = 300; // Comfortable horizontal scroll step in pixels
+      const scrollStep = 300; // Comfortable scroll step in pixels
 
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        container.scrollBy({ left: scrollStep, behavior: "smooth" });
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        container.scrollBy({ left: -scrollStep, behavior: "smooth" });
-      } else if (e.key === "Escape") {
+      if (settings.writingMode === "vertical") {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          container.scrollBy({ left: scrollStep, behavior: "smooth" });
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          container.scrollBy({ left: -scrollStep, behavior: "smooth" });
+        }
+      } else {
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          e.preventDefault();
+          container.scrollBy({ top: scrollStep, behavior: "smooth" });
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          container.scrollBy({ top: -scrollStep, behavior: "smooth" });
+        }
+      }
+
+      if (e.key === "Escape") {
         clearTemporaryHighlight();
         setSelectedText("");
         setSelectionBox(null);
@@ -418,24 +483,17 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLoading]);
+  }, [isLoading, settings.writingMode]);
 
-  // Scroll wheel mapping helper (redirect vertical scroll wheel to horizontal)
+  // Scroll wheel mapping helper (redirect vertical scroll wheel to horizontal ONLY in vertical writing mode)
   useEffect(() => {
     const container = canvasContainerRef.current;
-    if (!container || isLoading) return;
+    if (!container || isLoading || settings.writingMode !== "vertical") return;
 
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY !== 0) {
         e.preventDefault();
-        if (settings.writingMode === "vertical") {
-          // In vertical writing mode, next pages are to the left (negative direction).
-          // Scroll down (positive deltaY) should scroll left (subtract deltaY).
-          container.scrollLeft -= e.deltaY;
-        } else {
-          // LTR: scroll down (positive deltaY) should scroll right (add deltaY).
-          container.scrollLeft += e.deltaY;
-        }
+        container.scrollLeft -= e.deltaY;
       }
     };
 
@@ -803,7 +861,9 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
           style={{
             writingMode: settings.writingMode === "vertical" ? "vertical-rl" : "horizontal-tb",
           }}
-          className={`flex-1 overflow-x-auto overflow-y-hidden scroll-smooth no-scrollbar relative h-full ${getMarginStyle()}`}
+          className={`flex-1 scroll-smooth no-scrollbar relative h-full ${
+            settings.writingMode === "vertical" ? "overflow-x-auto overflow-y-hidden" : "overflow-y-auto overflow-x-hidden"
+          } ${getMarginStyle()}`}
         >
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center text-neutral-500 gap-2">
@@ -816,13 +876,13 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
                 ref={canvasRef}
                 id="reader-content-area"
                 style={{
-                  // Set CSS columns count / width
-                  columnWidth: settings.columnsCount === "auto"
-                    ? (settings.writingMode === "vertical" ? "auto" : "calc(50% - 20px)")
-                    : (settings.columnsCount === 1 ? "100%" : "calc(50% - 20px)"),
-                  columnGap: "40px",
-                  columnFill: "auto",
-                  height: "100%",
+                  // Set CSS columns count / width ONLY in vertical mode
+                  columnWidth: settings.writingMode === "vertical"
+                    ? (settings.columnsCount === "auto" ? "auto" : (settings.columnsCount === 1 ? "100%" : "calc(50% - 20px)"))
+                    : "auto",
+                  columnGap: settings.writingMode === "vertical" ? "40px" : "0px",
+                  columnFill: settings.writingMode === "vertical" ? "auto" : "balance",
+                  height: settings.writingMode === "vertical" ? "100%" : "auto",
                   fontSize: `${settings.fontSize}px`,
                   lineHeight: settings.lineHeight,
                   writingMode: settings.writingMode === "vertical" ? "vertical-rl" : "horizontal-tb",
