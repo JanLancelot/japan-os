@@ -875,7 +875,7 @@ export function VideoPlayerDashboard() {
   return (
     <div
       ref={containerRef}
-      className="relative w-screen h-screen bg-black text-neutral-200 overflow-hidden font-sans select-none"
+      className="dark relative w-screen h-screen bg-black text-neutral-200 overflow-hidden font-sans select-none"
     >
       {/* 100% Viewport Video Element Container */}
       <div className="absolute inset-0 w-full h-full z-0 bg-black flex items-center justify-center">

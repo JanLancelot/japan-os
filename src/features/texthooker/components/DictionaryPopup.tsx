@@ -41,6 +41,7 @@ export const DictionaryPopup: React.FC = () => {
   const popupRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const [isDark, setIsDark] = useState(false);
 
   // Initialize portal target and listen to fullscreen changes
   useEffect(() => {
@@ -116,13 +117,19 @@ export const DictionaryPopup: React.FC = () => {
     let targetNode: Node | null = null;
     let targetOffset = 0;
 
+    // Detect if we should use dark mode
+    const { x, y } = mouseCoords.current;
+    const hoveredElem = document.elementFromPoint(x, y);
+    const hasDarkAncestor = hoveredElem ? !!hoveredElem.closest(".dark") : false;
+    const isPageDark = document.documentElement.classList.contains("dark") || 
+                       document.body.classList.contains("dark") ||
+                       (typeof window !== "undefined" && window.location.pathname.includes("video-player"));
+    setIsDark(hasDarkAncestor || isPageDark);
+
     if (manualText) {
       textToLookup = manualText;
     } else {
-      const { x, y } = mouseCoords.current;
-      
-      // Determine what element is under the cursor first to avoid looking up UI text
-      const elem = document.elementFromPoint(x, y);
+      const elem = hoveredElem;
       if (elem && (
         elem.closest(".no-lookup") || 
         elem.closest("button") || 
@@ -412,7 +419,7 @@ export const DictionaryPopup: React.FC = () => {
         top: `${top}px`,
         width: `${width}px`,
       }}
-      className="fixed z-[9999] flex flex-col max-h-[380px] rounded-2xl border border-neutral-200/60 dark:border-neutral-800/80 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md shadow-2xl animate-in fade-in zoom-in-95 duration-150 no-lookup overflow-hidden select-text text-left text-neutral-800 dark:text-neutral-200"
+      className={`fixed z-[9999] flex flex-col max-h-[380px] rounded-2xl border border-neutral-200/60 dark:border-neutral-800/80 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md shadow-2xl animate-in fade-in zoom-in-95 duration-150 no-lookup overflow-hidden select-text text-left text-neutral-800 dark:text-neutral-200 ${isDark ? "dark" : ""}`}
     >
       {/* Header Controls */}
       <div className="flex items-center justify-between px-4 py-2 bg-neutral-50/50 dark:bg-neutral-900/30 border-b border-neutral-200/40 dark:border-neutral-800/40 select-none">
