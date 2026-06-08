@@ -80,6 +80,66 @@ export function VideoPlayerDashboard() {
     };
   }, [videoUrl, isPlaying]);
 
+  // Global drag-and-drop states
+  const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  useEffect(() => {
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current++;
+      if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+        setIsDraggingGlobal(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current--;
+      if (dragCounterRef.current === 0) {
+        setIsDraggingGlobal(false);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingGlobal(false);
+      dragCounterRef.current = 0;
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type.startsWith("video/")) {
+            handleVideoFileChange(file);
+          } else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt")) {
+            handleSubtitleFileChange(file);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [videoUrl]);
+
   // Set mounted state
   useEffect(() => {
     setMounted(true);
@@ -653,6 +713,21 @@ export function VideoPlayerDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Global Drag-and-drop Overlay */}
+        {isDraggingGlobal && (
+          <div className="absolute inset-0 z-[10000] flex flex-col items-center justify-center bg-black/85 backdrop-blur-md border-2 border-dashed border-blue-500/50 m-4 rounded-3xl animate-in fade-in duration-200">
+            <div className="w-16 h-16 rounded-2xl bg-blue-950/40 border border-blue-900/30 flex items-center justify-center text-blue-400 mb-4 animate-bounce">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-wide">Drop Video or Subtitle File Here</h2>
+            <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -1038,6 +1113,33 @@ export function VideoPlayerDashboard() {
       {isSidebarOpen && (
         <aside className="absolute top-0 right-0 bottom-0 w-[380px] border-l border-neutral-900 bg-neutral-950/80 backdrop-blur-md flex flex-col z-30 animate-in slide-in-from-right duration-300 h-full">
           
+          {/* Sidebar Header with Import button */}
+          <div className="px-4 py-3.5 border-b border-neutral-900 flex items-center justify-between select-none shrink-0">
+            <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-neutral-400">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              Transcript Script
+            </span>
+            <label className="px-2.5 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-350 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="file"
+                accept=".srt,.vtt"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleSubtitleFileChange(file);
+                }}
+                className="hidden"
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Import Subs
+            </label>
+          </div>
+
           {/* Search Input */}
           <div className="p-4 border-b border-neutral-900 select-none">
             <div className="relative">
@@ -1152,6 +1254,21 @@ export function VideoPlayerDashboard() {
           </div>
 
         </aside>
+      )}
+
+      {/* Global Drag-and-drop Overlay */}
+      {isDraggingGlobal && (
+        <div className="absolute inset-0 z-[10000] flex flex-col items-center justify-center bg-black/85 backdrop-blur-md border-2 border-dashed border-blue-500/50 m-4 rounded-3xl animate-in fade-in duration-200">
+          <div className="w-16 h-16 rounded-2xl bg-blue-950/40 border border-blue-900/30 flex items-center justify-center text-blue-400 mb-4 animate-bounce">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-white tracking-wide">Drop Video or Subtitle File Here</h2>
+          <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT</p>
+        </div>
       )}
     </div>
   );
