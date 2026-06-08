@@ -39,7 +39,7 @@ export default function Home() {
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid md:grid-cols-2 gap-8 md:gap-10">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
           
           {/* Card 1: Library & Vertical Reader */}
           <Link
@@ -180,6 +180,84 @@ export default function Home() {
 
             <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 mt-8 transition-colors select-none">
               Open Texthooker
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="transform group-hover:translate-x-1 transition-transform"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </div>
+          </Link>
+
+          {/* Card 3: Video Player & Subtitles */}
+          <Link
+            href="/video-player"
+            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
+          >
+            {/* Hover card glow */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-500/0 via-violet-500/0 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+            <div className="flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-violet-950/30 border border-violet-900/30 flex items-center justify-center text-violet-400 shadow-inner group-hover:scale-105 transition-transform">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
+                  動画 Player & Subtitles
+                </h3>
+                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+                  Stream local videos with interactive SRT/VTT subtitle tracks. Hold Shift to look up definitions.
+                </p>
+              </div>
+
+              {/* Bullet Features */}
+              <ul className="flex flex-col gap-1.5 mt-2.5">
+                {[
+                  "HTML5 overlay subtitles (Shift + Hover lookup)",
+                  "Custom subtitle sync offsets (±0.5s intervals)",
+                  "Collapsible interactive script sidebar panel",
+                  "Shortcuts to replay, pause-on-hover & copy line",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                      className="text-violet-500"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-400 group-hover:text-violet-300 mt-8 transition-colors select-none">
+              Open Video Player
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"

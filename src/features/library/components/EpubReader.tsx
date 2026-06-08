@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import * as db from "../database/libraryDb";
@@ -33,27 +33,170 @@ export function EpubReader() {
   const [book, setBook] = useState<db.Book | null>(null);
   const [chapters, setChapters] = useState<db.Chapter[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-  const [renderedHtml, setRenderedHtml] = useState("");
+  const [chapterHtml, setChapterHtml] = useState<string>("");
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [pendingPageToGo, setPendingPageToGo] = useState<number | 'last' | null>(null);
   const [imageUrlsMap, setImageUrlsMap] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Layout & Styling state
+  // Layout & Styling state matching Svelte reader variables
+  const [viewMode, setViewMode] = useState<"paginated" | "continuous">("paginated");
+  const [verticalMode, setVerticalMode] = useState(true);
+  const [fontFamily, setFontFamily] = useState("serif"); // 'serif', 'sans', 'rounded'
   const [fontSize, setFontSize] = useState(24);
   const [lineSpacing, setLineSpacing] = useState(1.8);
   const [letterSpacing, setLetterSpacing] = useState(0.04);
+  const [textIndentation, setTextIndentation] = useState(1); // rem/em
   const [theme, setTheme] = useState("midnight");
-  const [fontFamily, setFontFamily] = useState("serif");
+  const [hideFurigana, setHideFurigana] = useState(false);
+  const [hideSpoilerImage, setHideSpoilerImage] = useState(true);
+  
+  // Advanced WakeLock / UI warning states
+  const [enableWakeLock, setEnableWakeLock] = useState(true);
+  const [showBlurMessage, setShowBlurMessage] = useState(false);
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
   const [chapterDropdownOpen, setChapterDropdownOpen] = useState(false);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageStep, setPageStep] = useState(0);
+  const [layoutReady, setLayoutReady] = useState(false);
+
+  // WakeLock Logic
+  const requestWakeLock = useCallback(async () => {
+    if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
+    try {
+      if (wakeLockRef.current && !wakeLockRef.current.released) {
+        return;
+      }
+      wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+    } catch (err) {
+      console.warn("Failed to request wake lock", err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+      } catch (err) {
+        // no-op
+      }
+      wakeLockRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (enableWakeLock && typeof document !== "undefined" && document.visibilityState === "visible") {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+    return () => {
+      releaseWakeLock();
+    };
+  }, [enableWakeLock, requestWakeLock, releaseWakeLock]);
+
+  // Handle visibility change for WakeLock
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && enableWakeLock) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [enableWakeLock, requestWakeLock]);
+
+  // MutationObserver for Blur Message
+  useEffect(() => {
+    if (!contentRef.current) return;
+    
+    const handleMutation = (mutations: MutationRecord[]) => {
+      for (const mutation of mutations) {
+        if (mutation.target instanceof HTMLElement) {
+          const style = mutation.target.style.filter || "";
+          setShowBlurMessage(style.includes("blur"));
+        }
+      }
+    };
+
+    const observer = new MutationObserver(handleMutation);
+    observer.observe(contentRef.current, { attributes: true, attributeFilter: ["style"] });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [chapterHtml]);
+
+  // Update layout and paginate content
+  const updateLayout = useCallback(() => {
+    if (viewportRef.current && contentRef.current) {
+      const originalTransform = contentRef.current.style.transform;
+      contentRef.current.style.transform = "none";
+      
+      const vWidth = viewportRef.current.offsetWidth;
+      const vHeight = viewportRef.current.offsetHeight;
+      const sWidth = contentRef.current.scrollWidth;
+      
+      contentRef.current.style.transform = originalTransform;
+      
+      if (vWidth > 0) {
+        setViewportWidth(vWidth);
+        setViewportHeight(vHeight);
+        
+        const paddingX = vWidth < 640 ? 32 : 64;
+        const innerW = vWidth - 2 * paddingX;
+        
+        if (viewMode === "paginated") {
+          const numCols = Math.max(1, Math.ceil(sWidth / innerW));
+          setTotalPages(numCols);
+          setPageStep(innerW);
+        } else {
+          setTotalPages(1);
+          setPageStep(0);
+        }
+      }
+    }
+  }, [viewMode]);
+
+  // Recalculate layout on resize
+  useEffect(() => {
+    const handleResize = () => {
+      updateLayout();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateLayout]);
+
+  // Recalculate layout when content or typography changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateLayout();
+      setLayoutReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [chapterHtml, fontSize, lineSpacing, letterSpacing, fontFamily, viewMode, verticalMode, updateLayout]);
+
+  // Clamp current page index to total pages
+  useEffect(() => {
+    if (currentPageIndex >= totalPages) {
+      setCurrentPageIndex(Math.max(0, totalPages - 1));
+    }
+  }, [totalPages, currentPageIndex]);
 
   // 1. Fetch book data & chapters on mount
   useEffect(() => {
@@ -74,7 +217,7 @@ export function EpubReader() {
         }
         setBook(bookData);
 
-        // Apply saved typography settings
+        // Apply saved typography settings if available
         if (bookData.fontSize) setFontSize(bookData.fontSize);
         if (bookData.lineSpacing) setLineSpacing(bookData.lineSpacing);
         if (bookData.letterSpacing) setLetterSpacing(bookData.letterSpacing);
@@ -84,6 +227,7 @@ export function EpubReader() {
         const chapterList = await db.getBookChapters(bookId);
         setChapters(chapterList);
         setCurrentChapterIndex(bookData.currentChapterIndex || 0);
+        setCurrentPageIndex(bookData.scrollPosition || 0);
       } catch (err: any) {
         console.error(err);
         setError("Failed to load book from database.");
@@ -158,7 +302,7 @@ export function EpubReader() {
         doc.querySelectorAll("link[rel='stylesheet']").forEach((el) => el.remove());
         doc.querySelectorAll("style").forEach((el) => el.remove());
 
-        setRenderedHtml(doc.body.innerHTML);
+        setChapterHtml(doc.body.innerHTML);
       } catch (err) {
         console.error("Error loading chapter assets:", err);
       }
@@ -172,84 +316,99 @@ export function EpubReader() {
     };
   }, [currentChapterIndex, chapters, bookId]);
 
-  // 3. Handle scroll restoration after HTML rendering
+  // Reset scroll position on page/chapter change
   useEffect(() => {
-    if (containerRef.current && renderedHtml) {
-      const el = containerRef.current;
-      
-      const restoreScroll = () => {
-        if (book && book.currentChapterIndex === currentChapterIndex) {
-          el.scrollLeft = book.scrollPosition;
-        } else {
-          el.scrollLeft = 0; // Starts at rightmost side (0 in vertical-rl)
-        }
-        
-        // Recalculate progress on load
-        handleScroll();
-      };
-
-      const id = setTimeout(restoreScroll, 120);
-      return () => clearTimeout(id);
+    if (viewportRef.current) {
+      viewportRef.current.scrollLeft = 0;
+      viewportRef.current.scrollTop = 0;
     }
-  }, [renderedHtml, currentChapterIndex, book]);
+  }, [currentPageIndex, currentChapterIndex]);
 
-  // 4. Keyboard Arrow page turns (Japanese style)
+  // Handle pending page updates (e.g. going to previous chapter starts at the last page)
+  useEffect(() => {
+    if (totalPages > 0 && pendingPageToGo !== null) {
+      if (pendingPageToGo === 'last') {
+        setCurrentPageIndex(totalPages - 1);
+      } else {
+        setCurrentPageIndex(Math.min(pendingPageToGo, totalPages - 1));
+      }
+      setPendingPageToGo(null);
+    }
+  }, [totalPages, pendingPageToGo]);
+
+  // Recalculate progress when chapter, page, or pages count changes
+  useEffect(() => {
+    if (chapters.length === 0) return;
+    const totalChapters = chapters.length;
+    const ratio = totalPages > 0 ? currentPageIndex / totalPages : 0;
+    const progressVal = ((currentChapterIndex + ratio) / totalChapters) * 100;
+    setProgressPercent(Math.min(100, Math.max(0, progressVal)));
+  }, [currentPageIndex, currentChapterIndex, chapters.length, totalPages]);
+
+  const handleNextPage = useCallback(() => {
+    if (viewMode === "continuous") {
+      // In continuous mode, next chapter
+      if (currentChapterIndex < chapters.length - 1) {
+        setCurrentChapterIndex((prev) => prev + 1);
+      }
+      return;
+    }
+    if (currentPageIndex < totalPages - 1) {
+      setCurrentPageIndex((prev) => prev + 1);
+    } else if (currentChapterIndex < chapters.length - 1) {
+      setCurrentPageIndex(0);
+      setCurrentChapterIndex((prev) => prev + 1);
+    }
+  }, [currentPageIndex, totalPages, currentChapterIndex, chapters.length, viewMode]);
+
+  const handlePrevPage = useCallback(() => {
+    if (viewMode === "continuous") {
+      // In continuous mode, prev chapter
+      if (currentChapterIndex > 0) {
+        setCurrentChapterIndex((prev) => prev - 1);
+      }
+      return;
+    }
+    if (currentPageIndex > 0) {
+      setCurrentPageIndex((prev) => prev - 1);
+    } else if (currentChapterIndex > 0) {
+      setPendingPageToGo('last');
+      setCurrentChapterIndex((prev) => prev - 1);
+    }
+  }, [currentPageIndex, currentChapterIndex, viewMode]);
+
+  // Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const el = containerRef.current;
-      if (!el) return;
-
-      const pageScrollAmount = el.clientWidth * 0.85;
-
       if (e.key === "ArrowLeft") {
-        // Next page (scrolling to the left)
-        el.scrollBy({
-          left: -pageScrollAmount,
-          behavior: "smooth",
-        });
+        if (verticalMode) {
+          handleNextPage();
+        } else {
+          handlePrevPage();
+        }
       } else if (e.key === "ArrowRight") {
-        // Previous page (scrolling to the right)
-        el.scrollBy({
-          left: pageScrollAmount,
-          behavior: "smooth",
-        });
+        if (verticalMode) {
+          handlePrevPage();
+        } else {
+          handleNextPage();
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleNextPage, handlePrevPage, verticalMode]);
 
-  // 5. Track scrolling to update progress
-  const handleScroll = () => {
-    const el = containerRef.current;
-    if (!el || chapters.length === 0) return;
-
-    setScrollPosition(el.scrollLeft);
-
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    let ratio = 0;
-    
-    if (maxScroll > 0) {
-      // In vertical-rl, scrollLeft goes from 0 (far right) to -maxScroll (far left)
-      ratio = Math.abs(el.scrollLeft) / maxScroll;
-    }
-
-    const totalChapters = chapters.length;
-    const progressVal = ((currentChapterIndex + ratio) / totalChapters) * 100;
-    setProgressPercent(Math.min(100, Math.max(0, progressVal)));
-  };
-
-  // 6. Debounced Progress Update in IndexedDB
+  // Debounced Progress Update in IndexedDB
   useEffect(() => {
     if (!bookId || chapters.length === 0) return;
 
     const timer = setTimeout(() => {
-      db.updateBookProgress(bookId, currentChapterIndex, scrollPosition, progressPercent);
+      db.updateBookProgress(bookId, currentChapterIndex, currentPageIndex, progressPercent);
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [currentChapterIndex, scrollPosition, progressPercent, bookId, chapters.length]);
+  }, [currentChapterIndex, currentPageIndex, progressPercent, bookId, chapters.length]);
 
   // Save specific settings changes to DB (debounced)
   useEffect(() => {
@@ -268,38 +427,27 @@ export function EpubReader() {
     return () => clearTimeout(timer);
   }, [fontSize, lineSpacing, letterSpacing, theme, fontFamily, bookId]);
 
-  // Navigation handlers
-  const handleNextChapter = () => {
-    if (currentChapterIndex < chapters.length - 1) {
-      setCurrentChapterIndex((prev) => prev + 1);
-    }
-  };
-
-  const handlePrevChapter = () => {
-    if (currentChapterIndex > 0) {
-      setCurrentChapterIndex((prev) => prev - 1);
-    }
-  };
-
   const handleChapterSelect = (idx: number) => {
     setCurrentChapterIndex(idx);
+    setCurrentPageIndex(0);
     setChapterDropdownOpen(false);
   };
 
   const handleInternalLink = (href: string) => {
     if (href.startsWith("#")) {
-      // Anchor tag scroll
-      const el = containerRef.current?.querySelector(href);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
+      const el = contentRef.current?.querySelector(href);
+      if (el && viewportWidth > 0 && contentRef.current) {
+        const rect = el.getBoundingClientRect();
+        const containerRect = contentRef.current.getBoundingClientRect();
+        const absoluteRight = (containerRect.right - rect.right) + (currentPageIndex * viewportWidth);
+        const targetPage = Math.floor(absoluteRight / viewportWidth);
+        setCurrentPageIndex(Math.min(targetPage, totalPages - 1));
       }
       return;
     }
 
-    // Split filename and optional anchor hash
     const [pathPart, hashPart] = href.split("#");
     
-    // Find matching chapter in manifest path
     const matchedIndex = chapters.findIndex((c) => {
       const filename = c.filePath.split("/").pop() || "";
       return filename.toLowerCase() === pathPart.toLowerCase() || c.filePath.toLowerCase().endsWith(pathPart.toLowerCase());
@@ -307,12 +455,18 @@ export function EpubReader() {
 
     if (matchedIndex !== -1) {
       setCurrentChapterIndex(matchedIndex);
+      setCurrentPageIndex(0);
       
       if (hashPart) {
-        // If there's a hash, wait for render then scroll
         setTimeout(() => {
-          const el = containerRef.current?.querySelector(`#${hashPart}`);
-          if (el) el.scrollIntoView({ behavior: "smooth" });
+          const el = contentRef.current?.querySelector(`#${hashPart}`);
+          if (el && viewportWidth > 0 && contentRef.current) {
+            const rect = el.getBoundingClientRect();
+            const containerRect = contentRef.current.getBoundingClientRect();
+            const absoluteRight = containerRect.right - rect.right;
+            const targetPage = Math.floor(absoluteRight / viewportWidth);
+            setCurrentPageIndex(Math.min(targetPage, totalPages - 1));
+          }
         }, 300);
       }
     }
@@ -330,32 +484,18 @@ export function EpubReader() {
     }
   };
 
-  // Styling helper classes
+  // Theme styling helpers
   const getThemeClass = () => {
     switch (theme) {
       case "light":
-        return "bg-zinc-50 text-zinc-900";
+        return "bg-zinc-50 text-zinc-900 border-zinc-200";
       case "sepia":
-        return "bg-[#fcf8ed] text-[#433422]";
+        return "bg-[#fcf8ed] text-[#433422] border-[#e8d5b5]";
       case "dark":
         return "bg-zinc-950 text-zinc-200 border-neutral-900";
       case "midnight":
       default:
         return "bg-black text-neutral-300 border-neutral-950";
-    }
-  };
-
-  const getContainerTheme = () => {
-    switch (theme) {
-      case "light":
-        return "bg-white border-zinc-200/50 shadow-zinc-200/40";
-      case "sepia":
-        return "bg-[#f4ebd0] border-[#d5c396]/40 shadow-orange-950/5";
-      case "dark":
-        return "bg-zinc-900/30 border-zinc-800/40";
-      case "midnight":
-      default:
-        return "bg-neutral-900/10 border-neutral-900/30";
     }
   };
 
@@ -370,8 +510,6 @@ export function EpubReader() {
         return 'font-sans font-[system-ui,-apple-system,Meiryo,"Hiragino_Kaku_Gothic_ProN","Noto_Sans_JP",sans-serif]';
     }
   };
-
-  const currentChapter = chapters[currentChapterIndex];
 
   if (loading) {
     return (
@@ -408,11 +546,47 @@ export function EpubReader() {
     );
   }
 
+  const currentChapter = chapters[currentChapterIndex];
+  const paddingX = viewportWidth < 640 ? 32 : 64;
+  const paddingY = viewportWidth < 640 ? 40 : 60;
+  const innerWidth = viewportWidth > 0 ? viewportWidth - 2 * paddingX : 600;
+  const colGap = viewportWidth < 640 ? 48 : 80;
+  const colWidth = innerWidth - colGap;
+
+  // Render continuous vs paginated custom offsets
+  const scrollContainerStyle = viewMode === "continuous" 
+    ? {
+        overflowY: verticalMode ? "hidden" : "auto",
+        overflowX: verticalMode ? "auto" : "hidden",
+        width: "100%",
+        height: "100%",
+      } as React.CSSProperties
+    : {};
+
+  const contentTranslate = viewMode === "paginated" 
+    ? `translateX(${currentPageIndex * (pageStep || innerWidth || 0)}px)` 
+    : "none";
+
   return (
-    <div className={`flex flex-col flex-1 h-screen w-screen overflow-hidden transition-colors duration-300 relative select-text ${getThemeClass()}`}>
+    <div className={`flex flex-col h-[100dvh] w-full max-h-[100dvh] overflow-hidden transition-colors duration-300 relative select-text ${getThemeClass()}`}>
       
+      {/* External App Blur Alert overlay */}
+      {showBlurMessage && (
+        <div
+          className="fixed top-12 right-4 p-3 border max-w-[90vw] z-50 text-xs font-medium rounded-xl shadow-xl animate-bounce"
+          style={{
+            writingMode: "horizontal-tb",
+            color: theme === "light" ? "#111827" : "#f3f4f6",
+            backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
+            borderColor: theme === "light" ? "#e5e7eb" : "#374151",
+          }}
+        >
+          The reader is currently blurred due to an external application (e.g. exstatic)
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
-      <header className="flex items-center justify-between px-6 py-3 border-b select-none z-30">
+      <header className="flex items-center justify-between px-6 py-3 border-b select-none z-30 bg-inherit">
         <div className="flex items-center gap-4">
           <Link
             href="/library"
@@ -493,19 +667,13 @@ export function EpubReader() {
       </header>
 
       {/* Main Core Reading Layout */}
-      <div className="flex-1 flex w-full h-full overflow-hidden relative">
+      <div className="flex-1 flex w-full overflow-hidden relative">
         
-        {/* Floating Page Navigators (Overlay sides) - Left: Next, Right: Prev */}
-        {/* Note: since vertical-rl layouts read from right-to-left, Next is on the Left, and Prev is on the Right! */}
+        {/* Floating Page Navigators (Overlay sides) - Left: Next, Right: Prev in vertical-rl */}
         <div 
-          onClick={() => {
-            containerRef.current?.scrollBy({
-              left: -containerRef.current.clientWidth * 0.85,
-              behavior: "smooth",
-            });
-          }}
+          onClick={handleNextPage}
           className="absolute left-0 top-16 bottom-16 w-12 sm:w-16 hover:bg-neutral-500/5 cursor-pointer z-20 flex items-center justify-center text-neutral-600 hover:text-neutral-300 opacity-0 hover:opacity-100 transition duration-300 select-none"
-          title="Next Page (ArrowLeft)"
+          title={verticalMode ? "Next Page" : "Previous Page"}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="15 18 9 12 15 6" />
@@ -513,43 +681,59 @@ export function EpubReader() {
         </div>
 
         <div 
-          onClick={() => {
-            containerRef.current?.scrollBy({
-              left: containerRef.current.clientWidth * 0.85,
-              behavior: "smooth",
-            });
-          }}
+          onClick={handlePrevPage}
           className="absolute right-0 top-16 bottom-16 w-12 sm:w-16 hover:bg-neutral-500/5 cursor-pointer z-20 flex items-center justify-center text-neutral-600 hover:text-neutral-300 opacity-0 hover:opacity-100 transition duration-300 select-none"
-          title="Previous Page (ArrowRight)"
+          title={verticalMode ? "Previous Page" : "Next Page"}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </div>
 
-        {/* Scrollable Container */}
+        {/* Viewport Container (with fixed padding) */}
         <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          onClick={handleContentClick}
-          className={`flex-1 overflow-x-auto overflow-y-hidden select-text scrollbar-none h-full w-full flex justify-end pb-8 pt-6 px-16 sm:px-24 ${getFontFamilyClass()}`}
+          ref={viewportRef}
+          className={`flex-1 select-text relative ${getFontFamilyClass()}`}
+          style={{
+            ...scrollContainerStyle,
+            paddingTop: `${paddingY}px`,
+            paddingBottom: `${paddingY}px`,
+            paddingLeft: `${paddingX}px`,
+            paddingRight: `${paddingX}px`,
+            boxSizing: "border-box",
+          }}
         >
-          <div
-            className="h-full vertical-content-wrapper"
-            style={{
-              writingMode: "vertical-rl",
-              WebkitWritingMode: "vertical-rl",
-              fontSize: `${fontSize}px`,
-              lineHeight: lineSpacing,
-              letterSpacing: `${letterSpacing}em`,
-            }}
-            dangerouslySetInnerHTML={{ __html: renderedHtml }}
-          />
+          {/* Inner Content Box (clipping area) */}
+          <div className="w-full h-full relative overflow-hidden">
+            <div
+              ref={contentRef}
+              className={`vertical-content-wrapper ${hideFurigana ? "hide-furigana" : ""} ${hideSpoilerImage ? "hide-spoiler-image" : ""}`}
+              style={{
+                writingMode: verticalMode ? "vertical-rl" : "horizontal-tb",
+                WebkitWritingMode: verticalMode ? "vertical-rl" : "horizontal-tb",
+                fontSize: `${fontSize}px`,
+                lineHeight: lineSpacing,
+                letterSpacing: `${letterSpacing}em`,
+                transform: contentTranslate,
+                transition: viewMode === "paginated" ? "transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)" : "none",
+                position: viewMode === "paginated" ? "absolute" : "relative",
+                right: 0,
+                top: 0,
+                columnFill: "auto",
+                boxSizing: "border-box",
+                columnWidth: viewMode === "paginated" ? `${colWidth}px` : "auto",
+                columnGap: viewMode === "paginated" ? `${colGap}px` : "normal",
+                textIndent: `${textIndentation}em`,
+              } as React.CSSProperties}
+              onClick={handleContentClick}
+              dangerouslySetInnerHTML={{ __html: chapterHtml }}
+            />
+          </div>
         </div>
 
         {/* Floating Settings Drawer Panel (Sidebar) */}
         {showSettings && (
-          <div className="absolute right-4 top-16 w-80 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-5 flex flex-col gap-6 z-40 select-none animate-in slide-in-from-right duration-250">
+          <div className="absolute right-4 top-16 w-80 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-5 flex flex-col gap-5 z-40 select-none animate-in slide-in-from-right duration-250 text-neutral-300">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-mono">Typography Options</h3>
@@ -562,6 +746,47 @@ export function EpubReader() {
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
+            </div>
+
+            {/* View Mode & Direction */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider font-mono">Layout mode</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setViewMode("paginated")}
+                  className={`py-1.5 text-xs rounded-lg border transition font-medium ${
+                    viewMode === "paginated" ? "border-blue-500 bg-blue-600/10 text-white" : "border-neutral-800 hover:bg-neutral-800"
+                  }`}
+                >
+                  Paginated
+                </button>
+                <button
+                  onClick={() => setViewMode("continuous")}
+                  className={`py-1.5 text-xs rounded-lg border transition font-medium ${
+                    viewMode === "continuous" ? "border-blue-500 bg-blue-600/10 text-white" : "border-neutral-800 hover:bg-neutral-800"
+                  }`}
+                >
+                  Continuous
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  onClick={() => setVerticalMode(true)}
+                  className={`py-1.5 text-xs rounded-lg border transition font-medium ${
+                    verticalMode ? "border-blue-500 bg-blue-600/10 text-white" : "border-neutral-800 hover:bg-neutral-800"
+                  }`}
+                >
+                  縦書き (Vertical)
+                </button>
+                <button
+                  onClick={() => setVerticalMode(false)}
+                  className={`py-1.5 text-xs rounded-lg border transition font-medium ${
+                    !verticalMode ? "border-blue-500 bg-blue-600/10 text-white" : "border-neutral-800 hover:bg-neutral-800"
+                  }`}
+                >
+                  横書き (Horizontal)
+                </button>
+              </div>
             </div>
 
             {/* Themes Option */}
@@ -614,7 +839,7 @@ export function EpubReader() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider font-mono">Font Size</span>
-                <span className="text-xs font-mono font-bold text-neutral-300">{fontSize}px</span>
+                <span className="text-xs font-mono font-bold text-neutral-350">{fontSize}px</span>
               </div>
               <input
                 type="range"
@@ -631,7 +856,7 @@ export function EpubReader() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider font-mono">Line Spacing</span>
-                <span className="text-xs font-mono font-bold text-neutral-300">{lineSpacing}</span>
+                <span className="text-xs font-mono font-bold text-neutral-350">{lineSpacing}</span>
               </div>
               <input
                 type="range"
@@ -644,62 +869,64 @@ export function EpubReader() {
               />
             </div>
 
-            {/* Letter Spacing Option */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider font-mono">Character Spacing</span>
-                <span className="text-xs font-mono font-bold text-neutral-300">{letterSpacing}em</span>
-              </div>
-              <input
-                type="range"
-                min="0.0"
-                max="0.15"
-                step="0.01"
-                value={letterSpacing}
-                onChange={(e) => setLetterSpacing(parseFloat(e.target.value))}
-                className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
+            {/* WakeLock Toggle */}
+            <div className="flex items-center justify-between border-t border-neutral-800 pt-3">
+              <span className="text-xs font-medium">Enable WakeLock</span>
+              <button
+                onClick={() => setEnableWakeLock(!enableWakeLock)}
+                className={`w-9 h-5 rounded-full transition-colors relative ${enableWakeLock ? "bg-blue-600" : "bg-neutral-700"}`}
+              >
+                <span className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 left-0.75 transition-transform ${enableWakeLock ? "translate-x-4" : ""}`} />
+              </button>
             </div>
 
-            {/* Reset Button */}
-            <button
-              onClick={() => {
-                setFontSize(24);
-                setLineSpacing(1.8);
-                setLetterSpacing(0.04);
-                setTheme("midnight");
-                setFontFamily("serif");
-              }}
-              className="mt-2 text-center text-xs font-semibold py-2 bg-neutral-800 hover:bg-neutral-800/80 hover:text-white border border-neutral-700 text-neutral-300 rounded-xl cursor-pointer"
-            >
-              Reset to default
-            </button>
+            {/* Toggle Furigana / Spoiler */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">Hide Furigana</span>
+              <button
+                onClick={() => setHideFurigana(!hideFurigana)}
+                className={`w-9 h-5 rounded-full transition-colors relative ${hideFurigana ? "bg-blue-600" : "bg-neutral-700"}`}
+              >
+                <span className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 left-0.75 transition-transform ${hideFurigana ? "translate-x-4" : ""}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">Hide Spoiler Images</span>
+              <button
+                onClick={() => setHideSpoilerImage(!hideSpoilerImage)}
+                className={`w-9 h-5 rounded-full transition-colors relative ${hideSpoilerImage ? "bg-blue-600" : "bg-neutral-700"}`}
+              >
+                <span className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 left-0.75 transition-transform ${hideSpoilerImage ? "translate-x-4" : ""}`} />
+              </button>
+            </div>
           </div>
         )}
       </div>
-
+ 
       {/* Bottom Control Bar */}
-      <footer className="flex flex-col gap-2.5 px-6 py-3 border-t select-none z-30">
+      <footer className="flex flex-col gap-2.5 px-6 py-3 border-t select-none z-30 bg-inherit">
         
         {/* Navigation buttons + Scroll progress slider */}
         <div className="flex items-center gap-6">
           
           {/* Prev Chapter */}
           <button
-            onClick={handlePrevChapter}
-            disabled={currentChapterIndex === 0}
+            onClick={handlePrevPage}
+            disabled={currentChapterIndex === 0 && currentPageIndex === 0}
             className="p-1.5 rounded-lg border border-neutral-800 hover:bg-neutral-800/30 text-neutral-400 hover:text-neutral-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-            title="Previous Chapter"
+            title="Previous Page"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-
+ 
           {/* Book progress track */}
           <div className="flex-1 flex items-center gap-3">
             <span className="text-[10px] text-neutral-500 font-mono select-none">
-              Chapter {currentChapterIndex + 1} of {chapters.length}
+              Chapter {currentChapterIndex + 1} of {chapters.length} 
+              {viewMode === "paginated" && ` • Page ${currentPageIndex + 1} of ${totalPages}`}
             </span>
             <div className="flex-1 h-1 bg-neutral-800/60 rounded-full overflow-hidden relative">
               <div
@@ -711,13 +938,13 @@ export function EpubReader() {
               {Math.round(progressPercent)}%
             </span>
           </div>
-
+ 
           {/* Next Chapter */}
           <button
-            onClick={handleNextChapter}
-            disabled={currentChapterIndex === chapters.length - 1}
+            onClick={handleNextPage}
+            disabled={currentChapterIndex === chapters.length - 1 && currentPageIndex === totalPages - 1}
             className="p-1.5 rounded-lg border border-neutral-800 hover:bg-neutral-800/30 text-neutral-400 hover:text-neutral-100 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-            title="Next Chapter"
+            title="Next Page"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6" />
@@ -730,26 +957,33 @@ export function EpubReader() {
       <style jsx global>{`
         .vertical-content-wrapper {
           display: block;
-          column-width: 32rem; /* Column height standard */
-          column-gap: 4rem;    /* Padding between vertical page spreads */
           height: 100%;
           text-align: justify;
           color: inherit;
+          word-break: break-all;
+          overflow-wrap: break-word;
+          column-fill: auto;
+          box-sizing: border-box;
         }
 
-        @media (max-width: 640px) {
-          .vertical-content-wrapper {
-            column-width: 80vw;
-            column-gap: 2.5rem;
-          }
+        .vertical-content-wrapper.hide-furigana rt {
+          display: none !important;
+        }
+
+        .vertical-content-wrapper.hide-spoiler-image img {
+          filter: blur(16px);
+          transition: filter 0.3s ease;
+        }
+        .vertical-content-wrapper.hide-spoiler-image img:hover {
+          filter: none;
         }
 
         .vertical-content-wrapper p {
-          margin-top: 0;
-          margin-bottom: 0;
-          text-indent: 1em; /* Authentic novel paragraph indents */
-          margin-left: 0.8em; /* spacing between vertical lines */
+          margin: 0;
+          padding-block-end: 0.8em;
           line-height: inherit;
+          orphans: 2;
+          widows: 2;
         }
 
         .vertical-content-wrapper h1,
@@ -761,11 +995,11 @@ export function EpubReader() {
           font-family: inherit;
           font-weight: bold;
           line-height: 1.4;
-          margin-left: 1.5em; /* vertical page margins */
-          margin-top: 0;
-          margin-bottom: 0;
+          margin: 0;
+          padding-block-end: 1.5em;
           text-indent: 0;
           display: block;
+          break-after: avoid;
         }
 
         .vertical-content-wrapper h1 { font-size: 1.4em; }

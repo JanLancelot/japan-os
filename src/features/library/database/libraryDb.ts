@@ -12,6 +12,7 @@ export interface Book {
   letterSpacing?: number;
   theme?: string;
   fontFamily?: string;
+  sentencesPerPage?: number;
 }
 
 export interface Chapter {
@@ -230,6 +231,7 @@ export async function updateBookSettings(
     letterSpacing?: number;
     theme?: string;
     fontFamily?: string;
+    sentencesPerPage?: number;
   }
 ): Promise<void> {
   const db = await initDB();
