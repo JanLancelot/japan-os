@@ -23,4 +23,5 @@ export interface ReaderSettings {
   ttsVoice: string;
   ttsSpeed: number;
   showTimestamp: boolean;
+  geminiApiKey?: string;
 }

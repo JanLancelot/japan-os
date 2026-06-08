@@ -323,6 +323,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Section: Gemini AI */}
+          <div className="flex flex-col gap-4 border-t border-neutral-100 dark:border-neutral-800/80 pt-4">
+            <span className="font-semibold text-neutral-500 dark:text-neutral-400 text-xs tracking-wider uppercase flex items-center gap-1">
+              ✨ Gemini AI
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-neutral-700 dark:text-neutral-300 font-medium">Gemini API Key</label>
+                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-mono">Stored locally</span>
+              </div>
+              <input
+                type="password"
+                placeholder="Enter your Gemini API key"
+                value={settings.geminiApiKey || ""}
+                onChange={(e) => {
+                  onUpdate({ geminiApiKey: e.target.value });
+                  localStorage.setItem("gemini_api_key", e.target.value);
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 text-neutral-800 dark:text-neutral-200 text-xs"
+              />
+            </div>
+          </div>
+
         </div>
 
         {/* Footer */}

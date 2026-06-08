@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: ReaderSettings = {
   ttsVoice: "",
   ttsSpeed: 1.0,
   showTimestamp: false,
+  geminiApiKey: "",
 };
 
 export function useSettings() {
@@ -29,9 +30,19 @@ export function useSettings() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      const sharedKey = typeof window !== "undefined" ? localStorage.getItem("gemini_api_key") || "" : "";
       if (stored) {
         const parsed = JSON.parse(stored);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
+        setSettings({ 
+          ...DEFAULT_SETTINGS, 
+          ...parsed, 
+          geminiApiKey: parsed.geminiApiKey || sharedKey 
+        });
+      } else if (sharedKey) {
+        setSettings({ 
+          ...DEFAULT_SETTINGS, 
+          geminiApiKey: sharedKey 
+        });
       }
     } catch (e) {
       console.error("Failed to load settings from localStorage", e);

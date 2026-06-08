@@ -61,6 +61,13 @@ export function EpubReader() {
   const [showSettings, setShowSettings] = useState(false);
   const [chapterDropdownOpen, setChapterDropdownOpen] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setGeminiApiKey(localStorage.getItem("gemini_api_key") || "");
+    }
+  }, []);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -899,6 +906,24 @@ export function EpubReader() {
               >
                 <span className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.75 left-0.75 transition-transform ${hideSpoilerImage ? "translate-x-4" : ""}`} />
               </button>
+            </div>
+
+            {/* Gemini API Key */}
+            <div className="flex flex-col gap-2 border-t border-neutral-800 pt-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider font-mono">✨ Gemini AI API Key</span>
+                <span className="text-[9px] text-neutral-550 font-mono">Stored locally</span>
+              </div>
+              <input
+                type="password"
+                placeholder="Enter Gemini API key"
+                value={geminiApiKey}
+                onChange={(e) => {
+                  setGeminiApiKey(e.target.value);
+                  localStorage.setItem("gemini_api_key", e.target.value);
+                }}
+                className="w-full px-3 py-1.5 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
+              />
             </div>
           </div>
         )}
