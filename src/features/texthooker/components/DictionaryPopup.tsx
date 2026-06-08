@@ -42,6 +42,54 @@ export const DictionaryPopup: React.FC = () => {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const imageCacheRef = useRef<Record<string, string | null>>({});
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchImage = async (word: string) => {
+    // Clear any pending timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Check client-side in-memory cache first
+    if (word in imageCacheRef.current) {
+      setImageUrl(imageCacheRef.current[word]);
+      setImageLoading(false);
+      return;
+    }
+
+    setImageLoading(true);
+    setImageUrl(null);
+
+    // Debounce by 200ms to throttle fast scanning/hovering
+    fetchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const imgRes = await fetch(`/api/dictionary/image?word=${encodeURIComponent(word)}`);
+        const imgData = await imgRes.json();
+        const resolvedUrl = (imgData.success && imgData.imageUrl) ? imgData.imageUrl : null;
+        
+        imageCacheRef.current[word] = resolvedUrl;
+        setImageUrl(resolvedUrl);
+      } catch (err) {
+        console.error("Failed to fetch image for word:", word, err);
+        imageCacheRef.current[word] = null;
+        setImageUrl(null);
+      } finally {
+        setImageLoading(false);
+      }
+    }, 200);
+  };
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Initialize portal target and listen to fullscreen changes
   useEffect(() => {
@@ -193,6 +241,9 @@ export const DictionaryPopup: React.FC = () => {
           setSearchHistory([data.results[0].expression]);
         }
 
+        // Fetch image for the primary entry
+        fetchImage(data.results[0].expression);
+
         // Apply text selection highlight to the matched word in the background page
         if (targetNode && data.results[0]) {
           const matchedLen = data.results[0].matchedLength;
@@ -249,6 +300,8 @@ export const DictionaryPopup: React.FC = () => {
     setError(null);
     setSearchHistory([]);
     clearHighlight();
+    setImageUrl(null);
+    setImageLoading(false);
   };
 
   const handleSearchQuery = async (queryText: string) => {
@@ -507,41 +560,72 @@ export const DictionaryPopup: React.FC = () => {
 
         {!loading && !error && entries.map((entry, index) => (
           <div key={index} className="border-b border-neutral-100 dark:border-neutral-900/50 last:border-b-0 pb-3 last:pb-0">
-            {/* Header info */}
-            <div className="flex items-baseline gap-2.5 flex-wrap">
-              <span className="text-xl font-bold font-serif text-neutral-950 dark:text-zinc-50 leading-none">
-                {entry.expression}
-              </span>
-              
-              {entry.reading && entry.reading !== entry.expression && (
-                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 font-sans leading-none">
-                  【{entry.reading}】
-                </span>
-              )}
+            <div className="flex gap-4 justify-between items-start">
+              <div className="flex-1 min-w-0">
+                {/* Header info */}
+                <div className="flex items-baseline gap-2.5 flex-wrap">
+                  <span className="text-xl font-bold font-serif text-neutral-950 dark:text-zinc-50 leading-none">
+                    {entry.expression}
+                  </span>
+                  
+                  {entry.reading && entry.reading !== entry.expression && (
+                    <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 font-sans leading-none">
+                      【{entry.reading}】
+                    </span>
+                  )}
 
-              {/* Popularity indicator */}
-              {entry.popularity !== null && (
-                <span className="text-[9px] font-mono text-neutral-400 dark:text-neutral-500 select-none align-middle leading-none border border-neutral-200 dark:border-neutral-800 rounded px-1">
-                  #{entry.popularity}
-                </span>
+                  {/* Popularity indicator */}
+                  {entry.popularity !== null && (
+                    <span className="text-[9px] font-mono text-neutral-400 dark:text-neutral-500 select-none align-middle leading-none border border-neutral-200 dark:border-neutral-800 rounded px-1">
+                      #{entry.popularity}
+                    </span>
+                  )}
+                </div>
+
+                {/* Badges / Grammar tags */}
+                {(entry.definitionTags.length > 0 || entry.rules.length > 0) && (
+                  <div className="flex flex-wrap gap-1 mt-1.5 select-none">
+                    {entry.definitionTags.map((tag, tIdx) => (
+                      <span key={tIdx} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border border-neutral-200/40 dark:border-neutral-800/40">
+                        {tag}
+                      </span>
+                    ))}
+                    {entry.rules.map((rule, rIdx) => (
+                      <span key={rIdx} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">
+                        {rule}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Image Preview */}
+              {index === 0 && (imageLoading || imageUrl) && (
+                <div className="shrink-0 relative select-none">
+                  {imageLoading ? (
+                    <div className="w-[72px] h-[72px] rounded-xl bg-neutral-100 dark:bg-neutral-900/40 animate-pulse border border-neutral-200/40 dark:border-neutral-800/40" />
+                  ) : (
+                    imageUrl && (
+                      <a
+                        href={imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-[72px] h-[72px] rounded-xl overflow-hidden border border-neutral-200/60 dark:border-neutral-800/80 bg-neutral-50 dark:bg-neutral-900 hover:scale-105 shadow-md hover:shadow-lg transition-all duration-200 cursor-zoom-in group"
+                        title="Click to view full image"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imageUrl}
+                          alt={entry.expression}
+                          className="w-full h-full object-cover group-hover:brightness-95 transition-all"
+                          onError={() => setImageUrl(null)} // Hide on image load failure
+                        />
+                      </a>
+                    )
+                  )}
+                </div>
               )}
             </div>
-
-            {/* Badges / Grammar tags */}
-            {(entry.definitionTags.length > 0 || entry.rules.length > 0) && (
-              <div className="flex flex-wrap gap-1 mt-1.5 select-none">
-                {entry.definitionTags.map((tag, tIdx) => (
-                  <span key={tIdx} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border border-neutral-200/40 dark:border-neutral-800/40">
-                    {tag}
-                  </span>
-                ))}
-                {entry.rules.map((rule, rIdx) => (
-                  <span key={rIdx} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">
-                    {rule}
-                  </span>
-                ))}
-              </div>
-            )}
 
             {/* Definitions (RenderStructuredContent) */}
             <div className="mt-2.5 text-xs text-neutral-700 dark:text-neutral-300 font-sans leading-relaxed">
