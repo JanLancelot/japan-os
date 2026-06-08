@@ -249,14 +249,20 @@ export const DictionaryPopup: React.FC = () => {
     // Find preceding sentence (internal, or look at previous DOM sibling if boundary)
     let prev = "";
     if (targetIdx > 0) {
-      prev = sentences[targetIdx - 1].trim();
+      const prevSentenceText = sentences[targetIdx - 1];
+      if (prevSentenceText) {
+        prev = prevSentenceText.trim();
+      }
     } else {
       const prevSibling = parent.previousElementSibling;
       if (prevSibling) {
         const siblingText = prevSibling.textContent || "";
         const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
         if (siblingSentences.length > 0) {
-          prev = siblingSentences[siblingSentences.length - 1].trim();
+          const lastSentence = siblingSentences[siblingSentences.length - 1];
+          if (lastSentence) {
+            prev = lastSentence.trim();
+          }
         }
       }
     }
@@ -264,14 +270,20 @@ export const DictionaryPopup: React.FC = () => {
     // Find succeeding sentence (internal, or look at next DOM sibling if boundary)
     let next = "";
     if (targetIdx < sentences.length - 1) {
-      next = sentences[targetIdx + 1].trim();
+      const nextSentenceText = sentences[targetIdx + 1];
+      if (nextSentenceText) {
+        next = nextSentenceText.trim();
+      }
     } else {
       const nextSibling = parent.nextElementSibling;
       if (nextSibling) {
         const siblingText = nextSibling.textContent || "";
         const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
         if (siblingSentences.length > 0) {
-          next = siblingSentences[0].trim();
+          const firstSentence = siblingSentences[0];
+          if (firstSentence) {
+            next = firstSentence.trim();
+          }
         }
       }
     }

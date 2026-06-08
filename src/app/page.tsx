@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "JapanOS - Learning Workspace",
-  description: "A premium Japanese reading and language learning OS. Features a native Japanese vertical EPUB library and a Textractor WebSocket texthooker.",
+  description: "A premium Japanese language learning OS. Features a live Textractor WebSocket texthooker and an interactive video player with subtitle lookups.",
 };
 
 export default function Home() {
@@ -31,95 +31,15 @@ export default function Home() {
         {/* Title */}
         <div className="text-center md:text-left mb-12 md:mb-16 max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white font-sans leading-tight">
-            Elevate Your Japanese <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Reading & Learning</span>
+            Elevate Your Japanese <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Language Learning</span>
           </h2>
           <p className="text-sm text-neutral-500 mt-3 leading-relaxed">
-            A cohesive space designed for immersion. Manage and read your EPUB novels in vertical format, or stream text from visual novels using Textractor hooks with real-time dictionary lookups.
+            A cohesive space designed for immersion. Stream text from visual novels using Textractor hooks, or watch videos with interactive subtitle lookups and real-time dictionary support.
           </p>
-        </div>
+        </div>        {/* Dashboard Grid */}
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl">
 
-        {/* Dashboard Grid */}
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-          
-          {/* Card 1: Library & Vertical Reader */}
-          <Link
-            href="/library"
-            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
-          >
-            {/* Hover card glow */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-500/0 via-blue-500/0 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-            <div className="flex flex-col gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-950/30 border border-blue-900/30 flex items-center justify-center text-blue-400 shadow-inner group-hover:scale-105 transition-transform">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
-                  小説 Library & Reader
-                </h3>
-                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-                  Upload EPUB novels and read in authentic right-to-left, top-to-bottom vertical columns.
-                </p>
-              </div>
-
-              {/* Bullet Features */}
-              <ul className="flex flex-col gap-1.5 mt-2.5">
-                {[
-                  "Local IndexedDB persistent library storage",
-                  "Authentic vertical layout (`writing-mode: vertical-rl`)",
-                  "Adjustable spacing, fonts (Mincho) and themes",
-                  "Shift + Hover dictionary search (Jitendex SQLite)",
-                ].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      className="text-blue-500"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 group-hover:text-blue-300 mt-8 transition-colors select-none">
-              Open Library
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="transform group-hover:translate-x-1 transition-transform"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* Card 2: Live Texthooker Client */}
+          {/* Card 1: Live Texthooker Client */}
           <Link
             href="/texthooker"
             className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
@@ -196,7 +116,7 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Card 3: Video Player & Subtitles */}
+          {/* Card 2: Video Player & Subtitles */}
           <Link
             href="/video-player"
             className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
@@ -273,13 +193,91 @@ export default function Home() {
               </svg>
             </div>
           </Link>
+
+          {/* Card 3: Ebook Reader & Library */}
+          <Link
+            href="/reader"
+            className="group relative flex flex-col justify-between rounded-3xl border border-neutral-900 bg-neutral-950/40 p-8 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all duration-500 shadow-lg cursor-pointer transform hover:-translate-y-1 hover:shadow-2xl"
+          >
+            {/* Hover card glow */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+            <div className="flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-950/30 border border-emerald-900/30 flex items-center justify-center text-emerald-400 shadow-inner group-hover:scale-105 transition-transform">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-zinc-100 font-sans group-hover:text-white transition-colors">
+                  読書 Ebook Reader & Library
+                </h3>
+                <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+                  Immerse in Japanese novels. Supports reflowable vertical/horizontal layouts, bookmarks, and hover dictionary lookup.
+                </p>
+              </div>
+
+              {/* Bullet Features */}
+              <ul className="flex flex-col gap-1.5 mt-2.5">
+                {[
+                  "Offline EPUB & plain TXT parsing (IndexedDB)",
+                  "Traditional vertical (Tate-gaki) layout toggle",
+                  "Yomichan-style hover dictionary lookup",
+                  "Vocabulary notebook with Anki CSV exporter",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[11px] text-neutral-400">
+                    <svg
+                      xmlns="http://www.w3.org/2050/svg"
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                      className="text-emerald-500"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 group-hover:text-emerald-300 mt-8 transition-colors select-none">
+              Open Ebook Reader
+              <svg
+                xmlns="http://www.w3.org/2050/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="transform group-hover:translate-x-1 transition-transform"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </div>
+          </Link>
         </div>
       </main>
 
       {/* Footer */}
       <footer className="px-6 py-6 md:px-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-900/50 backdrop-blur-sm z-10 text-[10px] text-neutral-600 font-mono">
         <span>&copy; 2026 JapanOS Workspace. Built for language immersion.</span>
-        <span>Keyboard shortcuts: ArrowLeft/Right to paginate vertical reader. Shift+Hover for dictionary.</span>
+        <span>Keyboard shortcuts: Shift+Hover for dictionary lookup. Subtitle sync with ± offset controls.</span>
       </footer>
     </div>
   );
