@@ -857,7 +857,7 @@ export function VideoPlayerDashboard() {
       >
         {/* Timeline Progress Slider */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-mono text-neutral-400 select-none min-w-[36px]">
+          <span className="text-[10px] font-mono text-neutral-250 select-none min-w-[36px]">
             {formatTime(currentTime)}
           </span>
           
@@ -868,10 +868,10 @@ export function VideoPlayerDashboard() {
             step="0.05"
             value={currentTime}
             onChange={(e) => handleScrubberChange(parseFloat(e.target.value))}
-            className="flex-1 accent-blue-500 h-1 rounded-lg bg-neutral-800 hover:h-1.5 transition-all cursor-pointer"
+            className="flex-1 accent-blue-500 h-1 rounded-lg bg-neutral-855 hover:h-1.5 transition-all cursor-pointer"
           />
           
-          <span className="text-[10px] font-mono text-neutral-400 select-none min-w-[36px]">
+          <span className="text-[10px] font-mono text-neutral-250 select-none min-w-[36px]">
             {formatTime(duration)}
           </span>
         </div>
@@ -903,7 +903,7 @@ export function VideoPlayerDashboard() {
             <button
               onClick={replayCurrentLine}
               disabled={subtitles.length === 0}
-              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-350 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
               title="Replay Line (R)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -915,7 +915,7 @@ export function VideoPlayerDashboard() {
             <button
               onClick={() => jumpToSubtitle(-1)}
               disabled={subtitles.length === 0}
-              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-350 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
               title="Previous Line (S)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -928,7 +928,7 @@ export function VideoPlayerDashboard() {
             <button
               onClick={() => jumpToSubtitle(1)}
               disabled={subtitles.length === 0}
-              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-350 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white flex items-center justify-center hover:bg-neutral-850 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition cursor-pointer"
               title="Next Line (D)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -943,7 +943,7 @@ export function VideoPlayerDashboard() {
             <div className="flex items-center gap-1.5 group/volume">
               <button
                 onClick={handleToggleMute}
-                className="w-8 h-8 rounded-lg text-neutral-400 hover:text-white flex items-center justify-center hover:bg-neutral-900 transition cursor-pointer"
+                className="w-8 h-8 rounded-lg text-neutral-300 hover:text-white flex items-center justify-center hover:bg-neutral-900 transition cursor-pointer"
                 title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted || volume === 0 ? (
@@ -965,30 +965,30 @@ export function VideoPlayerDashboard() {
                 step="0.05"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="w-16 accent-neutral-250 h-1 bg-neutral-800 rounded-lg cursor-pointer opacity-40 group-hover/volume:opacity-100 transition-opacity"
+                className="w-16 accent-neutral-250 h-1 bg-neutral-800 rounded-lg cursor-pointer opacity-50 group-hover/volume:opacity-100 transition-opacity"
               />
             </div>
           </div>
 
           {/* Right Group: Subtitle offset, Speed, Fullscreen, Sidebar */}
-          <div className="flex items-center gap-4 flex-wrap text-xs text-neutral-400">
+          <div className="flex items-center gap-4 flex-wrap text-xs text-neutral-200">
             
             {/* Subtitle Offset Adjustment */}
             <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-xl px-2.5 py-1">
-              <span className="text-[10px] font-mono text-neutral-500 pr-1 select-none">Offset</span>
+              <span className="text-[10px] font-mono text-neutral-350 pr-1 select-none">Offset</span>
               <button
                 onClick={() => setSubtitleOffset(prev => prev - 0.5)}
-                className="px-1 py-0.5 rounded hover:bg-neutral-800 hover:text-white transition cursor-pointer"
+                className="px-1 py-0.5 rounded hover:bg-neutral-800 text-neutral-250 hover:text-white transition cursor-pointer"
                 title="Subtitles 0.5s earlier"
               >
                 -0.5s
               </button>
-              <span className="font-mono font-semibold text-neutral-200 px-1 text-[11px] min-w-[36px] text-center">
+              <span className="font-mono font-semibold text-neutral-100 px-1 text-[11px] min-w-[36px] text-center">
                 {subtitleOffset >= 0 ? `+${subtitleOffset.toFixed(1)}s` : `${subtitleOffset.toFixed(1)}s`}
               </span>
               <button
                 onClick={() => setSubtitleOffset(prev => prev + 0.5)}
-                className="px-1 py-0.5 rounded hover:bg-neutral-800 hover:text-white transition cursor-pointer"
+                className="px-1 py-0.5 rounded hover:bg-neutral-800 text-neutral-250 hover:text-white transition cursor-pointer"
                 title="Subtitles 0.5s later"
               >
                 +0.5s
@@ -1007,7 +1007,7 @@ export function VideoPlayerDashboard() {
             {/* Audio Track selection */}
             {audioTracks.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-neutral-500 uppercase select-none">Audio</span>
+                <span className="text-[10px] font-mono text-neutral-350 uppercase select-none">Audio</span>
                 <select
                   value={activeAudioTrackIndex}
                   onChange={(e) => {
@@ -1027,7 +1027,7 @@ export function VideoPlayerDashboard() {
             {/* Subtitle Track selection */}
             {textTracks.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-neutral-500 uppercase select-none">Subs</span>
+                <span className="text-[10px] font-mono text-neutral-350 uppercase select-none">Subs</span>
                 <select
                   value={activeTextTrackIndex}
                   onChange={(e) => {
@@ -1047,7 +1047,7 @@ export function VideoPlayerDashboard() {
 
             {/* Speed selection */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono text-neutral-500 uppercase select-none">Speed</span>
+              <span className="text-[10px] font-mono text-neutral-350 uppercase select-none">Speed</span>
               <select
                 value={playbackRate}
                 onChange={(e) => {
@@ -1071,7 +1071,7 @@ export function VideoPlayerDashboard() {
             <button
               onClick={() => setIsSidebarOpen(prev => !prev)}
               className={`p-1.5 rounded-xl border flex items-center justify-center transition cursor-pointer ${
-                isSidebarOpen ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
+                isSidebarOpen ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:text-white"
               }`}
               title={isSidebarOpen ? "Close Script Sidebar" : "Open Script Sidebar"}
             >
@@ -1084,7 +1084,7 @@ export function VideoPlayerDashboard() {
             {/* Fullscreen */}
             <button
               onClick={handleToggleFullscreen}
-              className="p-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white flex items-center justify-center transition cursor-pointer"
+              className="p-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white flex items-center justify-center transition cursor-pointer"
               title="Fullscreen"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1097,11 +1097,11 @@ export function VideoPlayerDashboard() {
 
         {/* Subtitle Options Toolbar */}
         <div className="h-px bg-neutral-900/60" />
-        <div className="flex flex-wrap items-center justify-between gap-4 select-none text-[11px] text-neutral-450">
+        <div className="flex flex-wrap items-center justify-between gap-4 select-none text-[11px] text-neutral-200">
           <div className="flex items-center gap-5">
             {/* Swap Media Buttons */}
             <div className="flex items-center gap-2">
-              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="file"
                   accept="video/*"
@@ -1110,7 +1110,7 @@ export function VideoPlayerDashboard() {
                 />
                 Swap Video
               </label>
-              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="file"
                   accept=".srt,.vtt"
@@ -1120,7 +1120,7 @@ export function VideoPlayerDashboard() {
                 Load Subs
               </label>
               {videoFile && (
-                <span className="text-[10px] text-neutral-500 truncate max-w-[140px] font-semibold ml-1.5" title={videoFile.name}>
+                <span className="text-[10px] text-neutral-200 truncate max-w-[140px] font-semibold ml-1.5" title={videoFile.name}>
                   {videoFile.name}
                 </span>
               )}
@@ -1129,7 +1129,7 @@ export function VideoPlayerDashboard() {
             <div className="h-4 w-px bg-neutral-900" />
 
             {/* Pause on Hover option */}
-            <label className="flex items-center gap-2 cursor-pointer text-neutral-400 hover:text-neutral-300 transition">
+            <label className="flex items-center gap-2 cursor-pointer text-neutral-200 hover:text-white transition">
               <input
                 type="checkbox"
                 checked={pauseOnHover}
@@ -1140,7 +1140,7 @@ export function VideoPlayerDashboard() {
             </label>
 
             {/* Auto-copy to Clipboard option */}
-            <label className="flex items-center gap-2 cursor-pointer text-neutral-400 hover:text-neutral-300 transition">
+            <label className="flex items-center gap-2 cursor-pointer text-neutral-200 hover:text-white transition">
               <input
                 type="checkbox"
                 checked={autoCopyToClipboard}
@@ -1154,11 +1154,11 @@ export function VideoPlayerDashboard() {
           <div className="flex items-center gap-4">
             {/* Font Family selector */}
             <div className="flex items-center gap-1.5">
-              <span className="text-neutral-500 font-mono">Font:</span>
+              <span className="text-neutral-350 font-mono">Font:</span>
               <button
                 onClick={() => setFontFamily("serif")}
                 className={`px-2 py-0.5 rounded cursor-pointer ${
-                  fontFamily === "serif" ? "bg-neutral-850 text-white border border-neutral-800" : "text-neutral-400 hover:text-neutral-300"
+                  fontFamily === "serif" ? "bg-neutral-850 text-white border border-neutral-800" : "text-neutral-200 hover:text-white"
                 }`}
               >
                 明朝 Mincho
@@ -1166,7 +1166,7 @@ export function VideoPlayerDashboard() {
               <button
                 onClick={() => setFontFamily("sans")}
                 className={`px-2 py-0.5 rounded cursor-pointer ${
-                  fontFamily === "sans" ? "bg-neutral-850 text-white border border-neutral-800" : "text-neutral-400 hover:text-neutral-300"
+                  fontFamily === "sans" ? "bg-neutral-850 text-white border border-neutral-800" : "text-neutral-200 hover:text-white"
                 }`}
               >
                 ゴシック Gothic
@@ -1175,17 +1175,17 @@ export function VideoPlayerDashboard() {
 
             {/* Subtitle Font Size adjusting */}
             <div className="flex items-center gap-1.5">
-              <span className="text-neutral-500 font-mono">Size:</span>
+              <span className="text-neutral-350 font-mono">Size:</span>
               <button
                 onClick={() => setFontSize(prev => Math.max(16, prev - 2))}
-                className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 hover:text-white transition cursor-pointer"
+                className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-200 hover:text-white transition cursor-pointer"
               >
                 A-
               </button>
-              <span className="font-mono text-neutral-350 min-w-[24px] text-center">{fontSize}px</span>
+              <span className="font-mono text-neutral-100 min-w-[24px] text-center">{fontSize}px</span>
               <button
                 onClick={() => setFontSize(prev => Math.min(36, prev + 2))}
-                className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 hover:text-white transition cursor-pointer"
+                className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-neutral-200 hover:text-white transition cursor-pointer"
               >
                 A+
               </button>
@@ -1286,18 +1286,18 @@ export function VideoPlayerDashboard() {
                     className={`p-3 rounded-2xl border text-left cursor-pointer transition select-text group ${
                       isActive
                         ? "bg-blue-500/10 border-blue-500/40 text-white shadow-lg shadow-blue-500/5 font-semibold"
-                        : "bg-neutral-900/30 border-neutral-900/60 text-neutral-400 hover:border-neutral-800 hover:bg-neutral-900/60 hover:text-neutral-250"
+                        : "bg-neutral-900/30 border-neutral-900/60 text-neutral-300 hover:border-neutral-800 hover:bg-neutral-900/60 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5 select-none">
                       <span className={`text-[9px] font-mono tracking-wider font-semibold ${
-                        isActive ? "text-blue-400" : "text-neutral-500"
+                        isActive ? "text-blue-400" : "text-neutral-400"
                       }`}>
                         {formatTime(cue.startTime)}
                       </span>
                       
                       <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition duration-150">
-                        <span className="text-[8px] font-mono text-neutral-550">Click to seek</span>
+                        <span className="text-[8px] font-mono text-neutral-400">Click to seek</span>
                       </div>
                     </div>
                     
@@ -1313,27 +1313,27 @@ export function VideoPlayerDashboard() {
           </div>
 
           {/* Keyboard Shortcuts Legend Card */}
-          <div className="p-4 border-t border-neutral-900 bg-neutral-950/60 select-none shrink-0 text-[10px] text-neutral-500">
-            <h4 className="font-semibold text-neutral-400 mb-2 uppercase tracking-wider font-mono">Keyboard Navigation</h4>
+          <div className="p-4 border-t border-neutral-900 bg-neutral-950/60 select-none shrink-0 text-[10px] text-neutral-400">
+            <h4 className="font-semibold text-neutral-300 mb-2 uppercase tracking-wider font-mono">Keyboard Navigation</h4>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono">
               <div className="flex items-center justify-between">
                 <span>Play / Pause</span>
-                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-350">Space</kbd>
+                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-200">Space</kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Replay Line</span>
-                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-350">R</kbd>
+                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-200">R</kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Prev Line</span>
-                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-350">S</kbd>
+                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-200">S</kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Next Line</span>
-                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-350">D</kbd>
+                <kbd className="px-1 py-0.5 bg-neutral-900 border border-neutral-850 rounded text-neutral-200">D</kbd>
               </div>
               <div className="flex items-center justify-between col-span-2 mt-1 border-t border-neutral-900 pt-1.5">
-                <span className="text-[9px] text-neutral-650 font-sans italic">Hold Shift and hover subtitle words for dictionary popup.</span>
+                <span className="text-[9px] text-neutral-300 font-sans italic">Hold Shift and hover subtitle words for dictionary popup.</span>
               </div>
             </div>
           </div>
