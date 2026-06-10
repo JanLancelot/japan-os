@@ -586,7 +586,7 @@ export default function Home() {
         {/* Dynamic Applications Section (SaaS Tool launchers) */}
         <div className="flex flex-col gap-3">
           <h3 className="text-base font-bold text-white tracking-wide">Immersion Services</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Ebook Card */}
             <div className="group relative h-52 rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-900 hover:border-zinc-800 shadow-xl flex flex-col justify-between p-5 transition duration-300">
@@ -618,6 +618,41 @@ export default function Home() {
                 </span>
                 <Link
                   href="/reader"
+                  className="bg-white hover:bg-zinc-200 text-black font-extrabold text-[11px] px-3.5 py-1.5 rounded-lg transition duration-300"
+                >
+                  Open Reader
+                </Link>
+              </div>
+            </div>
+
+            {/* Manga Reader Card */}
+            <div className="group relative h-52 rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-900 hover:border-zinc-800 shadow-xl flex flex-col justify-between p-5 transition duration-300">
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:scale-105 transition-transform duration-500"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600')",
+                }}
+              />
+              
+              <div className="z-20 flex items-center justify-between w-full">
+                <span className="text-2xl">🎨</span>
+                <span className="text-[10px] font-bold text-violet-400 font-mono tracking-widest uppercase bg-violet-950/40 border border-violet-900/40 px-2 py-0.5 rounded-full">
+                  Manga Reader
+                </span>
+              </div>
+
+              <div className="z-20 flex flex-col gap-1 mt-4">
+                <h4 className="text-base font-extrabold text-white">漫画 Manga Reader</h4>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Read manga ZIP volumes/folders with client-side vertical OCR overlays.
+                </p>
+              </div>
+
+              <div className="z-20 flex items-center justify-between border-t border-zinc-900/80 pt-3 mt-3 w-full">
+                <span className="text-[10px] text-zinc-550 font-medium">Text scanning active</span>
+                <Link
+                  href="/manga-reader"
                   className="bg-white hover:bg-zinc-200 text-black font-extrabold text-[11px] px-3.5 py-1.5 rounded-lg transition duration-300"
                 >
                   Open Reader
