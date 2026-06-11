@@ -4,30 +4,15 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-interface Profile {
-  id: string;
-  name: string;
-  avatarColor: string;
-}
-
-const PROFILES: Profile[] = [
-  { id: "sensei", name: "Sensei (先生)", avatarColor: "bg-blue-600" },
-  { id: "otaku", name: "Otaku (オタク)", avatarColor: "bg-red-600" },
-  { id: "gamer", name: "Gamer (ゲーマー)", avatarColor: "bg-purple-600" },
-  { id: "bookworm", name: "Bookworm (読書家)", avatarColor: "bg-emerald-600" },
-];
-
 export function NetflixWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const router = useRouter();
   
-  const [activeProfile, setActiveProfile] = useState<Profile>(PROFILES[0]);
   const [globalTheme, setGlobalTheme] = useState("dark");
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   
   // Header visibility (for auto-hide on tool pages)
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -101,14 +86,8 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, isLandingPage]);
 
-  // Load selected profile and global theme from localStorage if present
+  // Load global theme from localStorage if present
   useEffect(() => {
-    const savedProfile = localStorage.getItem("japanos-active-profile");
-    if (savedProfile) {
-      const found = PROFILES.find((p) => p.id === savedProfile);
-      if (found) setActiveProfile(found);
-    }
-    
     const savedTheme = localStorage.getItem("japanos-global-theme") || "dark";
     handleSelectTheme(savedTheme);
   }, []);
@@ -117,12 +96,6 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute("data-header-visible", headerVisible.toString());
   }, [headerVisible]);
-
-  const handleSelectProfile = (profile: Profile) => {
-    setActiveProfile(profile);
-    localStorage.setItem("japanos-active-profile", profile.id);
-    setProfileOpen(false);
-  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans select-none overflow-x-hidden">
@@ -208,98 +181,59 @@ export function NetflixWrapper({ children }: { children: React.ReactNode }) {
               placeholder="Titles, people, genres..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`bg-zinc-900 border border-zinc-700 text-xs px-3 py-1.5 text-white placeholder-zinc-500 rounded transition-all duration-500 origin-right focus:outline-none focus:border-zinc-500 ${
+              className={`bg-zinc-900 border border-zinc-700 text-xs px-3 py-1.5 text-white placeholder-zinc-550 rounded transition-all duration-500 origin-right focus:outline-none focus:border-zinc-500 ${
                 searchOpen ? "w-40 md:w-56 opacity-100 ml-2" : "w-0 opacity-0 pointer-events-none"
               }`}
             />
           </div>
 
-          {/* User Profile dropdown */}
+          {/* Settings/Theme Selector Dropdown */}
           <div className="relative">
             <button
               onClick={() => {
-                setProfileOpen(!profileOpen);
-                setNotificationsOpen(false);
+                setSettingsOpen(!settingsOpen);
               }}
-              className="flex items-center gap-1.5 focus:outline-none"
+              className="flex items-center gap-1.5 focus:outline-none p-1.5 text-zinc-200 hover:text-white transition-colors duration-300 cursor-pointer"
+              title="Workspace Settings"
             >
-              <div
-                className={`w-7.5 h-7.5 rounded text-white flex items-center justify-center text-xs font-bold shadow-md cursor-pointer transition-transform hover:scale-105 ${activeProfile.avatarColor}`}
-              >
-                {activeProfile.name.charAt(0)}
-              </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="3.5"
-                className={`text-zinc-400 transition-transform duration-300 ${profileOpen ? "rotate-180" : ""}`}
+                strokeWidth="2.5"
+                className={`transition-transform duration-300 ${settingsOpen ? "rotate-90 text-white" : ""}`}
               >
-                <polyline points="6 9 12 15 18 9" />
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
 
-            {profileOpen && (
-              <div className="absolute right-0 mt-3 w-52 bg-zinc-950 border border-zinc-900 rounded shadow-2xl overflow-hidden z-50 text-xs">
-                <div className="px-4 py-3 border-b border-zinc-900 bg-zinc-950/80">
-                  <span className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider block mb-2">Switch Profile</span>
-                  <div className="flex flex-col gap-2.5">
-                    {PROFILES.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSelectProfile(p)}
-                        className={`flex items-center gap-2.5 w-full text-left font-medium hover:text-white transition-colors py-1 ${
-                          activeProfile.id === p.id ? "text-white" : "text-zinc-400"
-                        }`}
-                      >
-                        <div className={`w-5.5 h-5.5 rounded flex items-center justify-center text-[10px] font-bold text-white ${p.avatarColor}`}>
-                          {p.name.charAt(0)}
-                        </div>
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-2 flex flex-col border-b border-zinc-900">
-                  <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      router.push("/");
-                    }}
-                    className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-900 hover:text-white rounded transition-colors"
-                  >
-                    Manage Profiles
-                  </button>
-                  <button
-                    onClick={() => setProfileOpen(false)}
-                    className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-900 hover:text-white rounded border-t border-zinc-900 pt-2 transition-colors mt-1"
-                  >
-                    Sign out of JapanOS
-                  </button>
-                </div>
-                <div className="px-4 py-3 bg-zinc-950/80">
-                  <span className="text-zinc-450 text-[9px] uppercase font-bold tracking-wider block mb-2">Workspace Theme</span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { id: "light", name: "Light (白)", color: "bg-white text-zinc-950 border border-zinc-350" },
-                      { id: "sepia", name: "Sepia (茶)", color: "bg-[#f5ebd6] text-[#4a3621] border border-[#d3c2a3]" },
-                      { id: "dark", name: "Dark (墨)", color: "bg-zinc-900 text-zinc-100 border border-zinc-800" },
-                      { id: "midnight", name: "OLED (宵)", color: "bg-black text-slate-100 border border-blue-950" },
-                    ].map((th) => (
-                      <button
-                        key={th.id}
-                        onClick={() => handleSelectTheme(th.id)}
-                        className={`flex items-center justify-center gap-1 py-1 rounded text-[9px] font-semibold transition-all cursor-pointer ${th.color} ${
-                          globalTheme === th.id ? "ring-2 ring-red-600 scale-[1.02]" : "opacity-75 hover:opacity-100"
-                        }`}
-                      >
-                        {th.name}
-                      </button>
-                    ))}
-                  </div>
+            {settingsOpen && (
+              <div className="absolute right-0 mt-3 w-52 bg-zinc-950 border border-zinc-900 rounded shadow-2xl overflow-hidden z-50 text-xs p-4">
+                <span className="text-zinc-450 text-[9.5px] uppercase font-bold tracking-wider block mb-2.5">Workspace Theme</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: "light", name: "Light (白)", color: "bg-white text-zinc-950 border border-zinc-350" },
+                    { id: "sepia", name: "Sepia (茶)", color: "bg-[#f5ebd6] text-[#4a3621] border border-[#d3c2a3]" },
+                    { id: "dark", name: "Dark (墨)", color: "bg-zinc-900 text-zinc-100 border border-zinc-800" },
+                    { id: "midnight", name: "OLED (宵)", color: "bg-black text-slate-100 border border-blue-950" },
+                  ].map((th) => (
+                    <button
+                      key={th.id}
+                      onClick={() => {
+                        handleSelectTheme(th.id);
+                        setSettingsOpen(false);
+                      }}
+                      className={`flex items-center justify-center gap-1 py-1 rounded text-[9px] font-semibold transition-all cursor-pointer ${th.color} ${
+                        globalTheme === th.id ? "ring-2 ring-red-600 scale-[1.02]" : "opacity-75 hover:opacity-100"
+                      }`}
+                    >
+                      {th.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

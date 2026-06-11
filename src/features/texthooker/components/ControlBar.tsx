@@ -3,7 +3,7 @@
 import React from "react";
 import { 
   GearIcon, ClockIcon, TrashIcon, BookOpenIcon, 
-  SunIcon, MoonIcon, VolumeIcon, VolumeMuteIcon, TextIcon 
+  VolumeIcon, VolumeMuteIcon, TextIcon 
 } from "./Icons";
 import { ReaderSettings, ReaderTheme } from "../types";
 import { ConnectionStatus as WSStatus } from "../hooks/useWebSocket";
@@ -29,13 +29,6 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   onClearHistory,
   historyCount,
 }) => {
-  // Cycle theme: light -> sepia -> dark -> midnight
-  const handleCycleTheme = () => {
-    const themeCycle: ReaderTheme[] = ["light", "sepia", "dark", "midnight"];
-    const currentIndex = themeCycle.indexOf(settings.theme);
-    const nextIndex = (currentIndex + 1) % themeCycle.length;
-    onUpdateSettings({ theme: themeCycle[nextIndex] });
-  };
 
   // Toggle layout
   const handleToggleLayout = () => {
@@ -48,17 +41,6 @@ export const ControlBar: React.FC<ControlBarProps> = ({
     onUpdateSettings({ autoTTS: !settings.autoTTS });
   };
 
-  const getThemeIcon = () => {
-    switch (settings.theme) {
-      case "light":
-      case "sepia":
-        return <SunIcon size={20} />;
-      case "dark":
-      case "midnight":
-      default:
-        return <MoonIcon size={20} />;
-    }
-  };
 
   const getConnectionColor = () => {
     switch (status) {
@@ -119,17 +101,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
           </span>
         </button>
 
-        {/* Theme Cycler */}
-        <button
-          onClick={handleCycleTheme}
-          className="relative group p-2 rounded-full text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200 active:scale-90 cursor-pointer flex items-center justify-center"
-          title="Cycle theme (light/sepia/dark/midnight)"
-        >
-          {getThemeIcon()}
-          <span className="absolute -top-10 scale-0 transition-all rounded bg-neutral-900 px-2 py-1 text-xs text-white group-hover:scale-100 whitespace-nowrap z-50">
-            Cycle Theme
-          </span>
-        </button>
+
 
         {/* TTS Quick Mute / Unmute */}
         <button

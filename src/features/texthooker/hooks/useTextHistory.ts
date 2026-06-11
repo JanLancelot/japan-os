@@ -22,15 +22,15 @@ export function useTextHistory() {
     setIsLoaded(true);
   }, []);
 
-  // Save history helper
-  const saveHistory = (newHistory: HookedSentence[]) => {
-    setHistory(newHistory);
+  // Save history on history changes
+  useEffect(() => {
+    if (!isLoaded) return;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     } catch (e) {
       console.error("Failed to save history to localStorage", e);
     }
-  };
+  }, [history, isLoaded]);
 
   // Add a new sentence to history
   const addSentence = (text: string, threadName?: string): HookedSentence => {
@@ -46,11 +46,9 @@ export function useTextHistory() {
       if (prev.length > 0 && prev[prev.length - 1].text === newSentence.text) {
         return prev;
       }
-      const updated = [...prev, newSentence];
-      try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to save history to localStorage", e);
+      let updated = [...prev, newSentence];
+      if (updated.length > 500) {
+        updated = updated.slice(updated.length - 500);
       }
       return updated;
     });
@@ -60,26 +58,24 @@ export function useTextHistory() {
 
   // Remove a sentence by id
   const removeSentence = (id: string) => {
-    const updated = history.filter((item) => item.id !== id);
-    saveHistory(updated);
+    setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
   // Edit/update a sentence by id
   const updateSentence = (id: string, newText: string) => {
-    const updated = history.map((item) =>
-      item.id === id ? { ...item, text: newText } : item
+    setHistory((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, text: newText } : item))
     );
-    saveHistory(updated);
   };
 
   // Clear all history
   const clearHistory = () => {
-    saveHistory([]);
+    setHistory([]);
   };
 
   // Import history
   const importHistory = (imported: HookedSentence[]) => {
-    saveHistory(imported);
+    setHistory(imported);
   };
 
   return {

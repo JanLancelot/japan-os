@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { VocabularyItem } from "../types";
 
 export interface DictionaryResult {
   expression: string;
@@ -18,8 +17,6 @@ interface DictionaryPopupProps {
   results: DictionaryResult[];
   position: { x: number; y: number };
   onClose: () => void;
-  onAddVocab: (vocab: Omit<VocabularyItem, "id" | "createdAt">) => void;
-  savedVocabExpressions: Set<string>;
   theme: "light" | "sepia" | "dark" | "midnight" | "forest";
 }
 
@@ -28,8 +25,6 @@ export const DictionaryPopup: React.FC<DictionaryPopupProps> = ({
   results,
   position,
   onClose,
-  onAddVocab,
-  savedVocabExpressions,
   theme,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -98,19 +93,7 @@ export const DictionaryPopup: React.FC<DictionaryPopupProps> = ({
   };
 
   const definitions = getDefinitionsArray(activeResult.definition);
-  const isSaved = savedVocabExpressions.has(`${activeResult.expression}::${activeResult.reading || ""}`);
 
-  const handleSaveWord = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isSaved) return;
-
-    onAddVocab({
-      expression: activeResult.expression,
-      reading: activeResult.reading || "",
-      definition: definitions.slice(0, 3).join("; "),
-      contextSentence: "", // Will be filled with sentence content from the Canvas
-    });
-  };
 
   // Theme-specific CSS classes
   const getThemeClasses = () => {
@@ -193,44 +176,7 @@ export const DictionaryPopup: React.FC<DictionaryPopupProps> = ({
             </svg>
           </button>
 
-          {/* Quick Save to Vocab Button */}
-          <button
-            onClick={handleSaveWord}
-            disabled={isSaved}
-            className={`p-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center ${
-              isSaved
-                ? "bg-green-500/10 border-green-500/30 text-green-400 cursor-default"
-                : "hover:bg-current/10 border-current/10"
-            }`}
-            title={isSaved ? "Saved in Notebook" : "Save to Vocab Notebook"}
-          >
-            {isSaved ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3.5"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            )}
-          </button>
+
         </div>
       </div>
 

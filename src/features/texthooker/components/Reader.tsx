@@ -78,10 +78,10 @@ export const Reader: React.FC<ReaderProps> = ({ history, settings, onSpeak }) =>
         case "sepia":
           return "text-[#433422] opacity-30 hover:opacity-85 transition-all duration-200";
         case "dark":
-          return "text-zinc-500 opacity-45 hover:opacity-90 hover:text-zinc-300 transition-all duration-200";
+          return "text-zinc-500 opacity-40 hover:opacity-90 hover:text-zinc-300 transition-all duration-200";
         case "midnight":
         default:
-          return "text-neutral-500 opacity-45 hover:opacity-90 hover:text-neutral-300 transition-all duration-200";
+          return "text-neutral-500 opacity-40 hover:opacity-90 hover:text-neutral-300 transition-all duration-200";
       }
     }
   };

@@ -51,7 +51,7 @@ export function VideoPlayerDashboard() {
 
   const getThemeControlClass = () => {
     switch (theme) {
-      case "light": return "bg-zinc-100 border-zinc-250 text-zinc-750 hover:bg-zinc-200 hover:text-zinc-900";
+      case "light": return "bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900";
       case "sepia": return "bg-[#ebdec2] border-[#d7c6a0] text-[#4a3621] hover:bg-[#decfae] hover:text-[#2d2011]";
       case "dark": return "bg-zinc-900 border-zinc-800 text-neutral-300 hover:bg-zinc-850 hover:text-white";
       case "midnight":
@@ -171,7 +171,7 @@ export function VideoPlayerDashboard() {
           const file = files[i];
           if (file.type.startsWith("video/")) {
             handleVideoFileChange(file);
-          } else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt")) {
+          } else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt") || file.name.endsWith(".ass")) {
             handleSubtitleFileChange(file);
           }
         }
@@ -213,8 +213,13 @@ export function VideoPlayerDashboard() {
     return `${minStr}:${secStr}`;
   };
 
-  // Subtitle Parser (SRT and VTT)
-  const parseSubtitles = (content: string): SubtitleCue[] => {
+  // Subtitle Parser (SRT, VTT, and ASS)
+  const parseSubtitles = (content: string, filename?: string): SubtitleCue[] => {
+    const isASS = (filename && filename.endsWith(".ass")) || content.includes("[Script Info]") || content.includes("[Events]");
+    if (isASS) {
+      return parseASSSubtitles(content);
+    }
+
     const normalized = content.replace(/\r\n/g, "\n");
     const cues: SubtitleCue[] = [];
     
@@ -262,6 +267,92 @@ export function VideoPlayerDashboard() {
     return cues.sort((a, b) => a.startTime - b.startTime);
   };
 
+  const parseASSSubtitles = (content: string): SubtitleCue[] => {
+    const lines = content.replace(/\r\n/g, "\n").split("\n");
+    const cues: SubtitleCue[] = [];
+    let formatHeaders: string[] = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      if (trimmed.startsWith("Format:")) {
+        formatHeaders = trimmed.substring(7).split(",").map(h => h.trim().toLowerCase());
+        continue;
+      }
+      
+      if (trimmed.startsWith("Dialogue:")) {
+        const dialogueContent = trimmed.substring(9).trim();
+        
+        let startIndex = 1;
+        let endIndex = 2;
+        let textIndex = 9;
+        
+        let parts: string[] = [];
+        if (formatHeaders.length > 0) {
+          startIndex = formatHeaders.indexOf("start");
+          endIndex = formatHeaders.indexOf("end");
+          textIndex = formatHeaders.indexOf("text");
+          
+          let remaining = dialogueContent;
+          for (let i = 0; i < textIndex; i++) {
+            const commaIdx = remaining.indexOf(",");
+            if (commaIdx === -1) {
+              parts.push(remaining);
+              remaining = "";
+              break;
+            } else {
+              parts.push(remaining.substring(0, commaIdx));
+              remaining = remaining.substring(commaIdx + 1);
+            }
+          }
+          parts.push(remaining);
+        } else {
+          let remaining = dialogueContent;
+          for (let i = 0; i < 9; i++) {
+            const commaIdx = remaining.indexOf(",");
+            if (commaIdx === -1) {
+              parts.push(remaining);
+              remaining = "";
+              break;
+            } else {
+              parts.push(remaining.substring(0, commaIdx));
+              remaining = remaining.substring(commaIdx + 1);
+            }
+          }
+          parts.push(remaining);
+        }
+        
+        const startStr = parts[startIndex]?.trim();
+        const endStr = parts[endIndex]?.trim();
+        let text = parts[textIndex]?.trim();
+        
+        if (startStr && endStr && text) {
+          const startTime = parseTimeToSeconds(startStr);
+          const endTime = parseTimeToSeconds(endStr);
+          
+          // Strip out ASS styling tags e.g. {\pos(100,100)} or {\fs20}
+          let cleanText = text.replace(/\{[^}]+\}/g, "");
+          
+          // Replace \N, \n and \h with spacing
+          cleanText = cleanText.replace(/\\N/g, "\n").replace(/\\n/g, "\n").replace(/\\h/g, " ");
+          
+          cleanText = cleanText.replace(/<\/?[^>]+(>|$)/g, "").trim();
+          
+          if (cleanText) {
+            cues.push({
+              id: String(cues.length),
+              startTime,
+              endTime,
+              text: cleanText,
+            });
+          }
+        }
+      }
+    }
+    return cues.sort((a, b) => a.startTime - b.startTime);
+  };
+
   const parseTimeToSeconds = (timeStr: string): number => {
     const parts = timeStr.replace(",", ".").split(":");
     let secs = 0;
@@ -304,7 +395,7 @@ export function VideoPlayerDashboard() {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (text) {
-        const cues = parseSubtitles(text);
+        const cues = parseSubtitles(text, file.name);
         setSubtitles(cues);
         setCurrentSubtitleIndex(-1);
       }
@@ -318,14 +409,52 @@ export function VideoPlayerDashboard() {
     const time = videoRef.current.currentTime;
     setCurrentTime(time);
 
-    // Find active subtitle cue matching the current time (considering offset)
-    const index = subtitles.findIndex((cue) => {
-      const adjustedStart = cue.startTime + subtitleOffset;
-      const adjustedEnd = cue.endTime + subtitleOffset;
-      return time >= adjustedStart && time <= adjustedEnd;
-    });
-    
-    setCurrentSubtitleIndex(index);
+    // Optimize lookup using O(1) sequential check & O(log N) binary search fallback
+    const findActiveSubtitleIndex = () => {
+      if (subtitles.length === 0) return -1;
+
+      // 1. Check current subtitle index
+      if (currentSubtitleIndex >= 0 && currentSubtitleIndex < subtitles.length) {
+        const cue = subtitles[currentSubtitleIndex];
+        const adjustedStart = cue.startTime + subtitleOffset;
+        const adjustedEnd = cue.endTime + subtitleOffset;
+        if (time >= adjustedStart && time <= adjustedEnd) {
+          return currentSubtitleIndex;
+        }
+      }
+
+      // 2. Check next subtitle index (common sequential case)
+      const nextIndex = currentSubtitleIndex + 1;
+      if (nextIndex >= 0 && nextIndex < subtitles.length) {
+        const cue = subtitles[nextIndex];
+        const adjustedStart = cue.startTime + subtitleOffset;
+        const adjustedEnd = cue.endTime + subtitleOffset;
+        if (time >= adjustedStart && time <= adjustedEnd) {
+          return nextIndex;
+        }
+      }
+
+      // 3. Fallback: Binary Search
+      let low = 0;
+      let high = subtitles.length - 1;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        const cue = subtitles[mid];
+        const adjustedStart = cue.startTime + subtitleOffset;
+        const adjustedEnd = cue.endTime + subtitleOffset;
+
+        if (time >= adjustedStart && time <= adjustedEnd) {
+          return mid;
+        } else if (time < adjustedStart) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+      return -1;
+    };
+
+    setCurrentSubtitleIndex(findActiveSubtitleIndex());
   };
 
   const handleLoadedMetadata = () => {
@@ -382,7 +511,7 @@ export function VideoPlayerDashboard() {
         reader.onload = (e) => {
           const text = e.target?.result as string;
           if (text) {
-            const cues = parseSubtitles(text);
+            const cues = parseSubtitles(text, subtitleFile.name);
             setSubtitles(cues);
           }
         };
@@ -706,7 +835,7 @@ export function VideoPlayerDashboard() {
                   for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     if (file.type.startsWith("video/")) handleVideoFileChange(file);
-                    else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt")) handleSubtitleFileChange(file);
+                    else if (file.name.endsWith(".srt") || file.name.endsWith(".vtt") || file.name.endsWith(".ass")) handleSubtitleFileChange(file);
                   }
                 }}
                 className={`border border-dashed rounded-3xl p-10 text-center backdrop-blur-sm relative overflow-hidden transition duration-350 flex flex-col justify-center items-center w-full gap-5 ${getThemeCardClass()} ${
@@ -726,7 +855,7 @@ export function VideoPlayerDashboard() {
                 <input
                   id="subtitle-file-input"
                   type="file"
-                  accept=".srt,.vtt"
+                  accept=".srt,.vtt,.ass"
                   className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubtitleFileChange(f); }}
                 />
@@ -779,7 +908,7 @@ export function VideoPlayerDashboard() {
                   </button>
                 </div>
 
-                <p className="text-[10px] text-neutral-600 font-mono">MP4 · WebM · MKV · SRT · VTT</p>
+                <p className="text-[10px] text-neutral-600 font-mono">MP4 · WebM · MKV · SRT · VTT · ASS</p>
               </div>
 
             </div>
@@ -797,7 +926,7 @@ export function VideoPlayerDashboard() {
               </svg>
             </div>
             <h2 className="text-xl font-bold text-white tracking-wide">Drop Video or Subtitle File Here</h2>
-            <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT</p>
+            <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT, ASS</p>
           </div>
         )}
       </div>
@@ -868,7 +997,7 @@ export function VideoPlayerDashboard() {
             step="0.05"
             value={currentTime}
             onChange={(e) => handleScrubberChange(parseFloat(e.target.value))}
-            className="flex-1 accent-blue-500 h-1 rounded-lg bg-neutral-855 hover:h-1.5 transition-all cursor-pointer"
+            className="flex-1 accent-blue-500 h-1 rounded-lg bg-neutral-800 hover:h-1.5 transition-all cursor-pointer"
           />
           
           <span className="text-[10px] font-mono text-neutral-250 select-none min-w-[36px]">
@@ -1069,7 +1198,10 @@ export function VideoPlayerDashboard() {
 
             {/* Toggle Sidebar */}
             <button
-              onClick={() => setIsSidebarOpen(prev => !prev)}
+              onClick={(e) => {
+                setIsSidebarOpen(prev => !prev);
+                e.currentTarget.blur();
+              }}
               className={`p-1.5 rounded-xl border flex items-center justify-center transition cursor-pointer ${
                 isSidebarOpen ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:text-white"
               }`}
@@ -1101,7 +1233,7 @@ export function VideoPlayerDashboard() {
           <div className="flex items-center gap-5">
             {/* Swap Media Buttons */}
             <div className="flex items-center gap-2">
-              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="file"
                   accept="video/*"
@@ -1110,10 +1242,10 @@ export function VideoPlayerDashboard() {
                 />
                 Swap Video
               </label>
-              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-750 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+              <label className="px-2.5 py-1 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="file"
-                  accept=".srt,.vtt"
+                  accept=".srt,.vtt,.ass"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubtitleFileChange(f); }}
                   className="hidden"
                 />
@@ -1195,8 +1327,9 @@ export function VideoPlayerDashboard() {
       </div>
 
       {/* Floating Collapsible Sidebar Transcript Panel Drawer */}
-      {isSidebarOpen && (
-        <aside className={`absolute top-0 right-0 bottom-0 w-[380px] border-l backdrop-blur-md flex flex-col z-30 animate-in slide-in-from-right duration-300 h-full ${getThemeCardClass()}`}>
+      <aside className={`absolute top-0 right-0 bottom-0 w-[380px] border-l backdrop-blur-md flex flex-col z-30 video-sidebar transition-all duration-500 ease-in-out ${getThemeCardClass()} ${
+        isSidebarOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+      }`}>
           
           {/* Sidebar Header with Import button */}
           <div className="px-4 py-3.5 border-b border-neutral-900/40 flex items-center justify-between select-none shrink-0">
@@ -1206,10 +1339,10 @@ export function VideoPlayerDashboard() {
               </svg>
               Transcript Script
             </span>
-            <label className="px-2.5 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-350 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+            <label className="px-2.5 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700 text-[10px] font-semibold text-neutral-400 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
               <input
                 type="file"
-                accept=".srt,.vtt"
+                accept=".srt,.vtt,.ass"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleSubtitleFileChange(file);
@@ -1337,9 +1470,7 @@ export function VideoPlayerDashboard() {
               </div>
             </div>
           </div>
-
         </aside>
-      )}
 
       {/* Global Drag-and-drop Overlay */}
       {isDraggingGlobal && (
@@ -1352,7 +1483,7 @@ export function VideoPlayerDashboard() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-white tracking-wide">Drop Video or Subtitle File Here</h2>
-          <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT</p>
+          <p className="text-xs text-neutral-400 mt-2 font-mono">Supports MP4, MKV, WebM, SRT, VTT, ASS</p>
         </div>
       )}
     </div>

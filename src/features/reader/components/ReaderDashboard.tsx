@@ -1,21 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Book, Bookmark, Highlight, VocabularyItem, ReaderSettings } from "../types";
+import { Book, ReaderSettings } from "../types";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   getAllBooks,
   getBook,
   saveBook,
-  getBookmarks,
-  saveBookmark,
-  deleteBookmark,
-  getHighlights,
-  saveHighlight,
-  deleteHighlight,
-  getVocabulary,
-  addVocabulary,
-  deleteVocabulary,
+  deleteBook,
   getReaderSettings,
   saveReaderSettings
 } from "../utils/db";
@@ -32,11 +24,6 @@ export function ReaderDashboard() {
 
   // Reader Settings State
   const [settings, setSettings] = useState<ReaderSettings>(() => getReaderSettings());
-
-  // Active book data lists
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
 
   const activeBook = useMemo(() => {
     return books.find((b) => b.id === bookId) || null;
@@ -59,11 +46,27 @@ export function ReaderDashboard() {
     }
   };
 
-  // Load all books on mount
+  // Load all books on mount and perform database initialization
   useEffect(() => {
     setMounted(true);
-    refreshBooks();
-    refreshVocabulary();
+    const initializeDashboard = async () => {
+      try {
+        const list = await getAllBooks();
+        const hasSampleBooks = list.some(
+          (b) => b.id === "sample-cat-book" || b.id === "sample-melos-book"
+        );
+        if (hasSampleBooks) {
+          await deleteBook("sample-cat-book");
+          await deleteBook("sample-melos-book");
+          await refreshBooks();
+        } else {
+          setBooks(list);
+        }
+      } catch (err) {
+        console.error("Failed to load books from IndexedDB:", err);
+      }
+    };
+    initializeDashboard();
   }, []);
 
   // Sync with global theme
@@ -100,39 +103,6 @@ export function ReaderDashboard() {
     }
   };
 
-  const refreshVocabulary = async () => {
-    try {
-      const list = await getVocabulary();
-      setVocabulary(list);
-    } catch (err) {
-      console.error("Failed to load vocabulary:", err);
-    }
-  };
-
-  // Fetch book-specific lists when a book is selected
-  useEffect(() => {
-    if (!activeBook) {
-      setBookmarks([]);
-      setHighlights([]);
-      return;
-    }
-
-    const loadBookData = async () => {
-      try {
-        const [bmList, hlList] = await Promise.all([
-          getBookmarks(activeBook.id),
-          getHighlights(activeBook.id),
-        ]);
-        setBookmarks(bmList);
-        setHighlights(hlList);
-      } catch (err) {
-        console.error("Failed to load book annotations:", err);
-      }
-    };
-
-    loadBookData();
-  }, [activeBook]);
-
   // Update book reading progress
   const handleUpdateProgress = async (
     bookId: string,
@@ -162,80 +132,6 @@ export function ReaderDashboard() {
     }
   };
 
-  // Bookmark actions
-  const handleAddBookmark = async (bmData: Omit<Bookmark, "id" | "createdAt">) => {
-    if (!activeBook) return;
-    const newBookmark: Bookmark = {
-      ...bmData,
-      id: `bm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: Date.now(),
-    };
-    try {
-      await saveBookmark(newBookmark);
-      setBookmarks((prev) => [...prev, newBookmark]);
-    } catch (err) {
-      console.error("Failed to save bookmark:", err);
-    }
-  };
-
-  const handleDeleteBookmark = async (id: string) => {
-    try {
-      await deleteBookmark(id);
-      setBookmarks((prev) => prev.filter((b) => b.id !== id));
-    } catch (err) {
-      console.error("Failed to delete bookmark:", err);
-    }
-  };
-
-  // Highlight actions
-  const handleAddHighlight = async (hlData: Omit<Highlight, "id" | "createdAt">) => {
-    if (!activeBook) return;
-    const newHighlight: Highlight = {
-      ...hlData,
-      id: `hl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: Date.now(),
-    };
-    try {
-      await saveHighlight(newHighlight);
-      setHighlights((prev) => [...prev, newHighlight]);
-    } catch (err) {
-      console.error("Failed to save highlight:", err);
-    }
-  };
-
-  const handleDeleteHighlight = async (id: string) => {
-    try {
-      await deleteHighlight(id);
-      setHighlights((prev) => prev.filter((h) => h.id !== id));
-    } catch (err) {
-      console.error("Failed to delete highlight:", err);
-    }
-  };
-
-  // Vocabulary notebook actions
-  const handleAddVocab = async (vocabData: Omit<VocabularyItem, "id" | "createdAt">) => {
-    const newVocab: VocabularyItem = {
-      ...vocabData,
-      id: `vocab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: Date.now(),
-    };
-    try {
-      await addVocabulary(newVocab);
-      setVocabulary((prev) => [newVocab, ...prev]);
-    } catch (err) {
-      console.error("Failed to save vocabulary:", err);
-    }
-  };
-
-  const handleDeleteVocab = async (id: string) => {
-    try {
-      await deleteVocabulary(id);
-      setVocabulary((prev) => prev.filter((v) => v.id !== id));
-    } catch (err) {
-      console.error("Failed to delete vocabulary:", err);
-    }
-  };
-
   if (!mounted) {
     return (
       <div className="flex-1 flex items-center justify-center bg-black text-neutral-450 min-h-screen">
@@ -259,15 +155,6 @@ export function ReaderDashboard() {
         onUpdateProgress={handleUpdateProgress}
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
-        bookmarks={bookmarks}
-        onAddBookmark={handleAddBookmark}
-        onDeleteBookmark={handleDeleteBookmark}
-        highlights={highlights}
-        onAddHighlight={handleAddHighlight}
-        onDeleteHighlight={handleDeleteHighlight}
-        vocabulary={vocabulary}
-        onAddVocab={handleAddVocab}
-        onDeleteVocab={handleDeleteVocab}
       />
     );
   }

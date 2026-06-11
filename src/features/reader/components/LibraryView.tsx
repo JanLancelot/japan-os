@@ -17,21 +17,6 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [isSeeding, setIsSeeding] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  // Clean up default books if they exist in the DB
-  useEffect(() => {
-    const cleanDefaultBooks = async () => {
-      let changed = false;
-      if (books.some(b => b.id === "sample-cat-book" || b.id === "sample-melos-book")) {
-        await deleteBook("sample-cat-book");
-        await deleteBook("sample-melos-book");
-        changed = true;
-      }
-      if (changed) {
-        onRefreshBooks();
-      }
-    };
-    cleanDefaultBooks();
-  }, [books]);
 
   const handleFileUpload = async (file: File) => {
     setUploadError("");
@@ -183,8 +168,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           </svg>
         </div>
         <div className="flex flex-col gap-1 select-none">
-          <p className="text-sm font-bold text-zinc-150">Drag and drop book files here, or <span className="text-[#E50914] group-hover/zone:underline">browse files</span></p>
-          <p className="text-xs text-zinc-555 font-mono">Supports EPUB or plain TXT format</p>
+          <p className="text-sm font-bold text-zinc-200">
+            Drag and drop book files here, or{" "}
+            <span className="text-[#E50914] group-hover/zone:underline">
+              browse files
+            </span>
+          </p>
+          <p className="text-xs text-zinc-500 font-mono">
+            Supports EPUB or plain TXT format
+          </p>
         </div>
       </label>
 
@@ -228,10 +220,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     />
                   ) : (
                     // Fallback cover
-                    <div className="w-full h-full bg-gradient-to-br from-zinc-850 to-zinc-950 flex flex-col justify-between p-4">
+                    <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex flex-col justify-between p-4">
                       <div className="text-[7px] font-mono text-zinc-500 tracking-widest uppercase">Ebook Reader</div>
                       <div className="text-xs font-serif font-bold text-zinc-300 line-clamp-3 leading-tight">{book.title}</div>
-                      <div className="text-[9px] text-zinc-550 truncate">{book.author}</div>
+                      <div className="text-[9px] text-zinc-500 truncate">{book.author}</div>
                     </div>
                   )}
 
@@ -259,7 +251,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white transition truncate font-sans">
                     {book.title}
                   </h4>
-                  <span className="text-[10px] text-zinc-550 mt-0.5 truncate">
+                  <span className="text-[10px] text-zinc-500 mt-0.5 truncate">
                     {book.author}
                   </span>
                 </div>

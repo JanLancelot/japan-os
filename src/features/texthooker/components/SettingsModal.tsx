@@ -35,12 +35,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const themes: { id: ReaderTheme; label: string; bg: string; text: string; border: string }[] = [
-    { id: "light", label: "Light", bg: "bg-white", text: "text-zinc-900", border: "border-zinc-300" },
-    { id: "sepia", label: "Sepia", bg: "bg-[#f4ebd0]", text: "text-[#433422]", border: "border-[#d5c396]" },
-    { id: "dark", label: "Dark", bg: "bg-zinc-800", text: "text-zinc-100", border: "border-zinc-700" },
-    { id: "midnight", label: "Midnight", bg: "bg-black", text: "text-zinc-400", border: "border-zinc-900" },
-  ];
 
   const fonts: { id: FontFamily; label: string; style: string }[] = [
     { id: "serif", label: "Hiragino Mincho", style: "font-serif" },
@@ -87,27 +81,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
 
           
-          {/* Section: Theme */}
-          <div className="flex flex-col gap-2.5">
-            <span className="font-semibold text-neutral-500 dark:text-neutral-400 text-xs tracking-wider uppercase">
-              Theme
-            </span>
-            <div className="grid grid-cols-4 gap-2">
-              {themes.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => onUpdate({ theme: t.id })}
-                  className={`flex flex-col items-center justify-center py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all duration-200 ${t.bg} ${t.text} ${
-                    settings.theme === t.id 
-                      ? "ring-2 ring-blue-500 border-transparent scale-[1.03]" 
-                      : `${t.border} opacity-80 hover:opacity-100`
-                  }`}
-                >
-                  <span>{t.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Section: Typography */}
           <div className="flex flex-col gap-4">

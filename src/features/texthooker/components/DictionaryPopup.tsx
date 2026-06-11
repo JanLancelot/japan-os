@@ -46,11 +46,17 @@ export const DictionaryPopup: React.FC = () => {
   const [imageLoading, setImageLoading] = useState(false);
   const imageCacheRef = useRef<Record<string, string | null>>({});
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerLookupRef = useRef<((manualText?: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    triggerLookupRef.current = triggerLookup;
+  });
 
   // Gemini AI States
   const [contextSentence, setContextSentence] = useState("");
-  const [prevSentence, setPrevSentence] = useState("");
-  const [nextSentence, setNextSentence] = useState("");
+  const [prevSentences, setPrevSentences] = useState<string[]>([]);
+  const [nextSentences, setNextSentences] = useState<string[]>([]);
+  const [contextCountBefore, setContextCountBefore] = useState(1);
+  const [contextCountAfter, setContextCountAfter] = useState(1);
   // AI mode is always "sentence"
   const aiMode = "sentence";
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
@@ -146,9 +152,9 @@ export const DictionaryPopup: React.FC = () => {
   // Update explanation from cache when context changes, preventing state loss
   useEffect(() => {
     if (isOpen) {
-      const word = entries[0]?.expression || "";
-      const target = contextSentence;
-      const cacheKey = `sentence:${contextSentence}:${prevSentence}:${nextSentence}`;
+      const activePrev = prevSentences.slice(0, contextCountBefore).reverse().join("\n");
+      const activeNext = nextSentences.slice(0, contextCountAfter).join("\n");
+      const cacheKey = `sentence:${contextSentence}:${activePrev}:${activeNext}:${contextCountBefore}:${contextCountAfter}`;
       
       if (aiCache[cacheKey]) {
         setAiExplanation(aiCache[cacheKey]);
@@ -156,7 +162,7 @@ export const DictionaryPopup: React.FC = () => {
         setAiExplanation(null);
       }
     }
-  }, [isOpen, entries, contextSentence, prevSentence, nextSentence, aiCache]);
+  }, [isOpen, contextSentence, prevSentences, nextSentences, contextCountBefore, contextCountAfter, aiCache]);
 
   // Monitor mouse movements to get the coordinates of the cursor
   useEffect(() => {
@@ -176,7 +182,7 @@ export const DictionaryPopup: React.FC = () => {
       if (e.key === "Shift") {
         // If the popup is already open and we press Shift, do we query again?
         // Yes, Yomichan lets you search another word if you press Shift while hovering it
-        triggerLookup();
+        triggerLookupRef.current?.();
       } else if (e.key === "Escape") {
         closePopup();
       }
@@ -214,10 +220,10 @@ export const DictionaryPopup: React.FC = () => {
   }, [entries, loading]);
 
   const getContextData = (node: Node, offset: number, textToLookup: string) => {
-    const parent = node.parentElement;
-    if (!parent) return { sentence: node.textContent || "", prevSentence: "", nextSentence: "" };
+    let textContainer: HTMLElement | null = node.parentElement;
+    if (!textContainer) return { sentence: node.textContent || "", prevSentences: [], nextSentences: [] };
 
-    const parentText = parent.textContent || "";
+    const parentText = textContainer.textContent || "";
     const sentences = parentText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [parentText];
     
     let targetIdx = -1;
@@ -246,52 +252,50 @@ export const DictionaryPopup: React.FC = () => {
 
     const sentence = (sentences[targetIdx] || parentText).trim();
     
-    // Find preceding sentence (internal, or look at previous DOM sibling if boundary)
-    let prev = "";
-    if (targetIdx > 0) {
-      const prevSentenceText = sentences[targetIdx - 1];
-      if (prevSentenceText) {
-        prev = prevSentenceText.trim();
-      }
-    } else {
-      const prevSibling = parent.previousElementSibling;
-      if (prevSibling) {
-        const siblingText = prevSibling.textContent || "";
-        const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
-        if (siblingSentences.length > 0) {
-          const lastSentence = siblingSentences[siblingSentences.length - 1];
-          if (lastSentence) {
-            prev = lastSentence.trim();
-          }
-        }
+    // Retrieve preceding sentences
+    const prevList: string[] = [];
+    for (let i = targetIdx - 1; i >= 0; i--) {
+      if (sentences[i]?.trim()) {
+        prevList.push(sentences[i].trim());
       }
     }
 
-    // Find succeeding sentence (internal, or look at next DOM sibling if boundary)
-    let next = "";
-    if (targetIdx < sentences.length - 1) {
-      const nextSentenceText = sentences[targetIdx + 1];
-      if (nextSentenceText) {
-        next = nextSentenceText.trim();
-      }
-    } else {
-      const nextSibling = parent.nextElementSibling;
-      if (nextSibling) {
-        const siblingText = nextSibling.textContent || "";
-        const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
-        if (siblingSentences.length > 0) {
-          const firstSentence = siblingSentences[0];
-          if (firstSentence) {
-            next = firstSentence.trim();
-          }
+    let prevSibling = textContainer.closest('.group')?.previousElementSibling || textContainer.previousElementSibling;
+    while (prevSibling && prevList.length < 3) {
+      const siblingText = prevSibling.textContent || "";
+      const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
+      for (let i = siblingSentences.length - 1; i >= 0; i--) {
+        if (siblingSentences[i]?.trim()) {
+          prevList.push(siblingSentences[i].trim());
         }
       }
+      prevSibling = prevSibling.previousElementSibling;
+    }
+
+    // Retrieve succeeding sentences
+    const nextList: string[] = [];
+    for (let i = targetIdx + 1; i < sentences.length; i++) {
+      if (sentences[i]?.trim()) {
+        nextList.push(sentences[i].trim());
+      }
+    }
+
+    let nextSibling = textContainer.closest('.group')?.nextElementSibling || textContainer.nextElementSibling;
+    while (nextSibling && nextList.length < 3) {
+      const siblingText = nextSibling.textContent || "";
+      const siblingSentences = siblingText.match(/[^。！？\n]+(?:[。！？\n]+|$)/g) || [];
+      for (let i = 0; i < siblingSentences.length; i++) {
+        if (siblingSentences[i]?.trim()) {
+          nextList.push(siblingSentences[i].trim());
+        }
+      }
+      nextSibling = nextSibling.nextElementSibling;
     }
 
     return {
       sentence,
-      prevSentence: prev,
-      nextSentence: next
+      prevSentences: prevList.slice(0, 3),
+      nextSentences: nextList.slice(0, 3)
     };
   };
 
@@ -312,8 +316,8 @@ export const DictionaryPopup: React.FC = () => {
     if (manualText) {
       textToLookup = manualText;
       setContextSentence("");
-      setPrevSentence("");
-      setNextSentence("");
+      setPrevSentences([]);
+      setNextSentences([]);
     } else {
       const elem = hoveredElem;
       if (elem && (
@@ -358,10 +362,10 @@ export const DictionaryPopup: React.FC = () => {
       targetOffset = offset;
 
       // Extract context data
-      const { sentence, prevSentence: prev, nextSentence: next } = getContextData(node, offset, textToLookup);
+      const { sentence, prevSentences: prevs, nextSentences: nexts } = getContextData(node, offset, textToLookup);
       setContextSentence(sentence);
-      setPrevSentence(prev);
-      setNextSentence(next);
+      setPrevSentences(prevs);
+      setNextSentences(nexts);
     }
 
     setLoading(true);
@@ -493,8 +497,9 @@ export const DictionaryPopup: React.FC = () => {
       return;
     }
 
-    const target = contextSentence;
-    const cacheKey = `sentence:${contextSentence}:${prevSentence}:${nextSentence}`;
+    const activePrev = prevSentences.slice(0, contextCountBefore).reverse().join("\n");
+    const activeNext = nextSentences.slice(0, contextCountAfter).join("\n");
+    const cacheKey = `sentence:${contextSentence}:${activePrev}:${activeNext}:${contextCountBefore}:${contextCountAfter}`;
 
     if (aiCache[cacheKey]) {
       setAiExplanation(aiCache[cacheKey]);
@@ -504,17 +509,24 @@ export const DictionaryPopup: React.FC = () => {
     setAiLoading(true);
     setAiError(null);
 
+    const word = entries[0]?.expression || "";
+    const reading = entries[0]?.reading || "";
+
     try {
       const prompt = `You are an expert Japanese language instructor. Explain the following sentence: "${contextSentence}".
-${prevSentence ? `Preceding Sentence for context: "${prevSentence}"` : ""}
-${nextSentence ? `Succeeding Sentence for context: "${nextSentence}"` : ""}
+${word ? `Focus especially on explaining the specific word/phrase "${word}"${reading ? ` (read as 【${reading}】)` : ""} in the context of this sentence.` : ""}
+${activePrev ? `Preceding Context sentences:\n${activePrev}` : ""}
+${activeNext ? `Succeeding Context sentences:\n${activeNext}` : ""}
 
-Translate and explain the entire sentence in English. Break down the grammatical structure, key particle usages, registers, tone, and subtext/implied nuances in context of the surrounding sentences.
+Provide the following:
+1. Translation: Translate and explain the entire sentence in English.
+2. Word Analysis: ${word ? `Analyze the specific word/phrase "${word}", explaining its grammatical role, conjugation (if applicable), register, and nuance in this context.` : "Explain any key vocabulary."}
+3. Grammar Breakdown: Break down the grammatical structure, particle usages, register/tone, and subtext/implied nuances in context of the surrounding sentences.
 
 Format the response using markdown:
 - Use bold text for Japanese words (**日本語**).
 - Use bullet points for readability.
-Keep it under 200 words.`;
+Keep it under 300 words.`;
 
       const endpoints = [
         `https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite:generateContent?key=${geminiApiKey}`,
@@ -655,111 +667,7 @@ Keep it under 200 words.`;
     });
   };
 
-  // Structured Content Rendering
-  const RenderSC: React.FC<{ content: any }> = ({ content }) => {
-    if (content === null || content === undefined) return null;
-    if (typeof content === "string") return <>{content}</>;
-    if (Array.isArray(content)) {
-      return (
-        <>
-          {content.map((item, index) => (
-            <RenderSC key={index} content={item} />
-          ))}
-        </>
-      );
-    }
-    if (typeof content === "object") {
-      const tag = content.tag || "span";
-      const children = content.content;
-      const data = content.data || {};
-      const style = content.style || {};
-      const href = content.href;
-      const lang = content.lang;
-
-      let className = "";
-      const classNameAttr = content.className || data.class || "";
-      
-      if (classNameAttr) {
-        if (classNameAttr.includes("tag") || classNameAttr.includes("part-of-speech")) {
-          className += " inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/60 dark:border-blue-900/30 mr-1.5 my-0.5 align-middle select-none";
-        } else if (classNameAttr.includes("extra-box") || classNameAttr.includes("xref") || classNameAttr.includes("extra-info")) {
-          className += " border border-neutral-200/50 dark:border-neutral-800/80 rounded-xl p-2 my-1.5 text-[11px] bg-neutral-50/50 dark:bg-neutral-900/30 leading-normal";
-        } else if (classNameAttr.includes("label") || classNameAttr.includes("reference-label")) {
-          className += " text-xs font-semibold text-neutral-400 dark:text-neutral-500 mr-1";
-        }
-      }
-
-      const props: any = { style, className };
-      if (lang) props.lang = lang;
-
-      switch (tag) {
-        case "br":
-          return <br />;
-        case "ruby":
-          return <ruby className="ruby-text"><RenderSC content={children} /></ruby>;
-        case "rt":
-          return <rt className="text-[10px] text-neutral-400 dark:text-neutral-500 select-none font-sans font-normal leading-none"><RenderSC content={children} /></rt>;
-        case "a":
-          if (href && href.startsWith("?query=")) {
-            const queryVal = decodeURIComponent(href.split("query=")[1].split("&")[0]);
-            return (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSearchQuery(queryVal);
-                }}
-                className="text-blue-500 dark:text-blue-400 hover:underline inline font-medium cursor-pointer"
-              >
-                <RenderSC content={children} />
-              </button>
-            );
-          }
-          return (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline">
-              <RenderSC content={children} />
-            </a>
-          );
-        case "ul":
-          return <ul className="list-disc pl-4 space-y-1.5 my-1.5 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} /></ul>;
-        case "ol":
-          return <ol className="list-decimal pl-4 space-y-1.5 my-1.5 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} /></ol>;
-        case "li":
-          return <li className="leading-relaxed"><RenderSC content={children} /></li>;
-        case "table": {
-          const hasTableSections = Array.isArray(children)
-            ? children.some(c => c && typeof c === "object" && (c.tag === "thead" || c.tag === "tbody" || c.tag === "tfoot"))
-            : (children && typeof children === "object" && (children.tag === "thead" || children.tag === "tbody" || children.tag === "tfoot"));
-          return (
-            <table className="w-full text-xs border-collapse border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-2">
-              {hasTableSections ? (
-                <RenderSC content={children} />
-              ) : (
-                <tbody>
-                  <RenderSC content={children} />
-                </tbody>
-              )}
-            </table>
-          );
-        }
-        case "thead":
-          return <thead className="bg-neutral-50 dark:bg-neutral-900"><RenderSC content={children} /></thead>;
-        case "tbody":
-          return <tbody><RenderSC content={children} /></tbody>;
-        case "tr":
-          return <tr className="border-b border-neutral-100 dark:border-neutral-900/60"><RenderSC content={children} /></tr>;
-        case "th":
-          return <th className="px-2 py-1 text-left font-semibold text-neutral-500 dark:text-neutral-400"><RenderSC content={children} /></th>;
-        case "td":
-          return <td className="px-2 py-1 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} /></td>;
-        case "div":
-          return <div {...props}><RenderSC content={children} /></div>;
-        case "span":
-        default:
-          return <span {...props}><RenderSC content={children} /></span>;
-      }
-    }
-    return null;
-  };
+  // RenderSC component moved outside to optimize React rendering performance.
 
   if (!isOpen || !portalTarget) return null;
 
@@ -991,7 +899,7 @@ Keep it under 200 words.`;
 
                 {/* Definitions (RenderStructuredContent) */}
                 <div className="mt-2.5 text-xs text-neutral-700 dark:text-neutral-300 font-sans leading-relaxed">
-                  <RenderSC content={entry.definition} />
+                  <RenderSC content={entry.definition} onSearchQuery={handleSearchQuery} />
                 </div>
               </div>
             ))}
@@ -1042,7 +950,7 @@ Keep it under 200 words.`;
                     placeholder="Paste Gemini API Key..."
                     defaultValue={geminiApiKey}
                     id="gemini-api-key-popup-input"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-850 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <button
                     onClick={() => {
@@ -1080,20 +988,71 @@ Keep it under 200 words.`;
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Context sentence indication */}
-                    {contextSentence && (
-                      <div className="text-[10px] text-neutral-400 dark:text-neutral-500 bg-neutral-50/80 dark:bg-neutral-900/40 rounded-lg px-2.5 py-1.5 italic border-l-2 border-indigo-400/50 truncate">
-                        {contextSentence}
+                    {/* Context Controls */}
+                    <div className="bg-neutral-50/50 dark:bg-neutral-900/30 border border-neutral-200/50 dark:border-neutral-800/60 rounded-xl p-2.5 space-y-2.5 text-[11px] font-sans">
+                      <div className="flex justify-between items-center select-none text-[10px] text-neutral-500 font-mono">
+                        <div className="flex items-center gap-1">
+                          <span>Context Before:</span>
+                          <button
+                            onClick={() => setContextCountBefore(prev => Math.max(0, prev - 1))}
+                            className="w-4 h-4 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center font-bold cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-neutral-700 dark:text-neutral-300">{contextCountBefore}</span>
+                          <button
+                            onClick={() => setContextCountBefore(prev => Math.min(prevSentences.length, prev + 1))}
+                            className="w-4 h-4 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center font-bold cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <span>Context After:</span>
+                          <button
+                            onClick={() => setContextCountAfter(prev => Math.max(0, prev - 1))}
+                            className="w-4 h-4 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center font-bold cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-neutral-700 dark:text-neutral-300">{contextCountAfter}</span>
+                          <button
+                            onClick={() => setContextCountAfter(prev => Math.min(nextSentences.length, prev + 1))}
+                            className="w-4 h-4 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center font-bold cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                    )}
+
+                      {/* Displaying context text */}
+                      <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin select-text font-serif leading-relaxed text-xs">
+                        {contextCountBefore > 0 && prevSentences.slice(0, contextCountBefore).reverse().map((s, idx) => (
+                          <div key={`prev-${idx}`} className="text-neutral-400 dark:text-neutral-500 italic opacity-70">
+                            {s}
+                          </div>
+                        ))}
+                        {contextSentence && (
+                          <div className="text-neutral-900 dark:text-zinc-50 font-bold border-l-2 border-indigo-400 pl-2 bg-indigo-50/20 dark:bg-indigo-950/10 py-0.5 my-1">
+                            {contextSentence}
+                          </div>
+                        )}
+                        {contextCountAfter > 0 && nextSentences.slice(0, contextCountAfter).map((s, idx) => (
+                          <div key={`next-${idx}`} className="text-neutral-400 dark:text-neutral-500 italic opacity-70">
+                            {s}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Main output text / loading / error / action */}
                     {aiLoading ? (
                       <div className="space-y-2.5 py-4 select-none animate-pulse">
-                        <div className="h-3 bg-neutral-200 dark:bg-neutral-850 rounded-full w-11/12" />
-                        <div className="h-3 bg-neutral-200 dark:bg-neutral-850 rounded-full w-full" />
-                        <div className="h-3 bg-neutral-200 dark:bg-neutral-850 rounded-full w-4/5" />
-                        <div className="h-3 bg-neutral-200 dark:bg-neutral-850 rounded-full w-9/12" />
+                        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full w-11/12" />
+                        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full w-full" />
+                        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full w-4/5" />
+                        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full w-9/12" />
                         <div className="flex items-center justify-center pt-3 gap-1.5">
                           <div className="w-3.5 h-3.5 rounded-full border-2 border-neutral-300 dark:border-neutral-700 border-t-blue-500 animate-spin" />
                           <span className="text-[9px] text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Gemini is analyzing...</span>
@@ -1140,7 +1099,9 @@ Keep it under 200 words.`;
                           </button>
                           <button
                             onClick={() => {
-                              const cacheKey = `sentence:${contextSentence}:${prevSentence}:${nextSentence}`;
+                              const activePrev = prevSentences.slice(0, contextCountBefore).reverse().join("\n");
+                              const activeNext = nextSentences.slice(0, contextCountAfter).join("\n");
+                              const cacheKey = `sentence:${contextSentence}:${activePrev}:${activeNext}:${contextCountBefore}:${contextCountAfter}`;
                               const newCache = { ...aiCache };
                               delete newCache[cacheKey];
                               setAiCache(newCache);
@@ -1187,4 +1148,114 @@ Keep it under 200 words.`;
     </div>,
     portalTarget
   );
+};
+
+interface RenderSCProps {
+  content: any;
+  onSearchQuery: (query: string) => void;
+}
+
+const RenderSC: React.FC<RenderSCProps> = ({ content, onSearchQuery }) => {
+  if (content === null || content === undefined) return null;
+  if (typeof content === "string") return <>{content}</>;
+  if (Array.isArray(content)) {
+    return (
+      <>
+        {content.map((item, index) => (
+          <RenderSC key={index} content={item} onSearchQuery={onSearchQuery} />
+        ))}
+      </>
+    );
+  }
+  if (typeof content === "object") {
+    const tag = content.tag || "span";
+    const children = content.content;
+    const data = content.data || {};
+    const style = content.style || {};
+    const href = content.href;
+    const lang = content.lang;
+
+    let className = "";
+    const classNameAttr = content.className || data.class || "";
+    
+    if (classNameAttr) {
+      if (classNameAttr.includes("tag") || classNameAttr.includes("part-of-speech")) {
+        className += " inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/60 dark:border-blue-900/30 mr-1.5 my-0.5 align-middle select-none";
+      } else if (classNameAttr.includes("extra-box") || classNameAttr.includes("xref") || classNameAttr.includes("extra-info")) {
+        className += " border border-neutral-200/50 dark:border-neutral-800/80 rounded-xl p-2 my-1.5 text-[11px] bg-neutral-50/50 dark:bg-neutral-900/30 leading-normal";
+      } else if (classNameAttr.includes("label") || classNameAttr.includes("reference-label")) {
+        className += " text-xs font-semibold text-neutral-400 dark:text-neutral-500 mr-1";
+      }
+    }
+
+    const props: any = { style, className };
+    if (lang) props.lang = lang;
+
+    switch (tag) {
+      case "br":
+        return <br />;
+      case "ruby":
+        return <ruby className="ruby-text"><RenderSC content={children} onSearchQuery={onSearchQuery} /></ruby>;
+      case "rt":
+        return <rt className="text-[10px] text-neutral-400 dark:text-neutral-500 select-none font-sans font-normal leading-none"><RenderSC content={children} onSearchQuery={onSearchQuery} /></rt>;
+      case "a":
+        if (href && href.startsWith("?query=")) {
+          const queryVal = decodeURIComponent(href.split("query=")[1].split("&")[0]);
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSearchQuery(queryVal);
+              }}
+              className="text-blue-500 dark:text-blue-400 hover:underline inline font-medium cursor-pointer"
+            >
+              <RenderSC content={children} onSearchQuery={onSearchQuery} />
+            </button>
+          );
+        }
+        return (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline">
+            <RenderSC content={children} onSearchQuery={onSearchQuery} />
+          </a>
+        );
+      case "ul":
+        return <ul className="list-disc pl-4 space-y-1.5 my-1.5 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} onSearchQuery={onSearchQuery} /></ul>;
+      case "ol":
+        return <ol className="list-decimal pl-4 space-y-1.5 my-1.5 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} onSearchQuery={onSearchQuery} /></ol>;
+      case "li":
+        return <li className="leading-relaxed"><RenderSC content={children} onSearchQuery={onSearchQuery} /></li>;
+      case "table": {
+        const hasTableSections = Array.isArray(children)
+          ? children.some(c => c && typeof c === "object" && (c.tag === "thead" || c.tag === "tbody" || c.tag === "tfoot"))
+          : (children && typeof children === "object" && (children.tag === "thead" || children.tag === "tbody" || children.tag === "tfoot"));
+        return (
+          <table className="w-full text-xs border-collapse border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-2">
+            {hasTableSections ? (
+              <RenderSC content={children} onSearchQuery={onSearchQuery} />
+            ) : (
+              <tbody>
+                <RenderSC content={children} onSearchQuery={onSearchQuery} />
+              </tbody>
+            )}
+          </table>
+        );
+      }
+      case "thead":
+        return <thead className="bg-neutral-50 dark:bg-neutral-900"><RenderSC content={children} onSearchQuery={onSearchQuery} /></thead>;
+      case "tbody":
+        return <tbody><RenderSC content={children} onSearchQuery={onSearchQuery} /></tbody>;
+      case "tr":
+        return <tr className="border-b border-neutral-100 dark:border-neutral-900/60"><RenderSC content={children} onSearchQuery={onSearchQuery} /></tr>;
+      case "th":
+        return <th className="px-2 py-1 text-left font-semibold text-neutral-500 dark:text-neutral-400"><RenderSC content={children} onSearchQuery={onSearchQuery} /></th>;
+      case "td":
+        return <td className="px-2 py-1 text-neutral-600 dark:text-neutral-300"><RenderSC content={children} onSearchQuery={onSearchQuery} /></td>;
+      case "div":
+        return <div {...props}><RenderSC content={children} onSearchQuery={onSearchQuery} /></div>;
+      case "span":
+      default:
+        return <span {...props}><RenderSC content={children} onSearchQuery={onSearchQuery} /></span>;
+    }
+  }
+  return null;
 };

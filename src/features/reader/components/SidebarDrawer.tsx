@@ -1,25 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Book, Bookmark, Highlight, VocabularyItem, ReaderSettings, Chapter } from "../types";
+import { Book, ReaderSettings, Chapter } from "../types";
 
 interface SidebarDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "toc" | "styling" | "search" | "bookmarks" | "vocab";
-  setActiveTab: (tab: "toc" | "styling" | "search" | "bookmarks" | "vocab") => void;
+  activeTab: "toc" | "styling" | "search";
+  setActiveTab: (tab: "toc" | "styling" | "search") => void;
   book: Book;
   chapters: Omit<Chapter, "content">[];
   currentChapterIndex: number;
   onSelectChapter: (index: number) => void;
   settings: ReaderSettings;
   onUpdateSettings: (settings: ReaderSettings) => void;
-  bookmarks: Bookmark[];
-  highlights: Highlight[];
-  onSelectBookmark: (bm: Bookmark) => void;
-  onDeleteBookmark: (id: string) => void;
-  onSelectHighlight: (hl: Highlight) => void;
-  onDeleteHighlight: (id: string) => void;
-  vocabulary: VocabularyItem[];
-  onDeleteVocab: (id: string) => void;
   // Search features
   onSearch: (query: string) => Promise<{ chapterIndex: number; snippet: string; textOffset: number }[]>;
   onNavigateToSearchResult: (chapterIndex: number, textOffset: number) => void;
@@ -36,14 +28,6 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onSelectChapter,
   settings,
   onUpdateSettings,
-  bookmarks,
-  highlights,
-  onSelectBookmark,
-  onDeleteBookmark,
-  onSelectHighlight,
-  onDeleteHighlight,
-  vocabulary,
-  onDeleteVocab,
   onSearch,
   onNavigateToSearchResult,
 }) => {
@@ -72,40 +56,12 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     }
   };
 
-  // Export vocabulary notebook to CSV for Anki import
-  const handleExportVocabCSV = () => {
-    if (vocabulary.length === 0) return;
-    
-    // Anki format: Expression, Reading, Definition, Context Sentence, Source Book
-    const headers = ["Expression", "Reading", "Definition", "Context Sentence", "Source Book"];
-    const rows = vocabulary.map((item) => [
-      item.expression,
-      item.reading,
-      item.definition.replace(/"/g, '""'),
-      (item.contextSentence || "").replace(/"/g, '""'),
-      (item.bookTitle || "JapanOS Reader").replace(/"/g, '""'),
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((r) => r.map((val) => `"${val}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${book.title}_vocabulary_notebook.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  if (!isOpen) return null;
 
   return (
     <aside
-      className={`fixed top-0 right-0 h-screen w-[380px] z-[4000] flex flex-col border-l border-zinc-800/80 bg-zinc-950/95 backdrop-blur-xl text-zinc-300 shadow-2xl transition-all duration-350 ease-out transform translate-x-0 font-sans`}
+      className={`fixed top-0 right-0 h-screen w-[380px] z-[4000] flex flex-col border-l border-zinc-800/80 bg-zinc-950/95 backdrop-blur-xl text-zinc-300 shadow-2xl transition-transform duration-300 ease-in-out font-sans ${
+        isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"
+      }`}
     >
       {/* Drawer Header */}
       <div className="px-6 py-5 flex items-center justify-between border-b border-zinc-900 shrink-0">
@@ -127,25 +83,23 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       {/* Tabs list */}
       <div className="flex border-b border-zinc-900 bg-zinc-950/50 select-none shrink-0 text-[10px] font-mono font-semibold">
         {[
-          { id: "toc", label: "Index", icon: "📑" },
-          { id: "styling", label: "Style", icon: "🎨" },
-          { id: "search", label: "Search", icon: "🔍" },
-          { id: "bookmarks", label: "Marks", icon: "🔖" },
-          { id: "vocab", label: "Vocab", icon: "📓" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
-            className={`flex-1 py-3.5 text-center border-b-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center ${
-              activeTab === t.id
-                ? "border-blue-500 text-white bg-zinc-900/40"
-                : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/10"
-            }`}
-          >
-            <span className={`block text-sm mb-1 transition-transform duration-200 ${activeTab === t.id ? "scale-110" : "opacity-80"}`}>{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
+        { id: "toc", label: "Index", icon: "📑" },
+        { id: "styling", label: "Style", icon: "🎨" },
+        { id: "search", label: "Search", icon: "🔍" },
+      ].map((t) => (
+        <button
+          key={t.id}
+          onClick={() => setActiveTab(t.id as any)}
+          className={`flex-1 py-3.5 text-center border-b-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center ${
+            activeTab === t.id
+              ? "border-blue-500 text-white bg-zinc-900/40"
+              : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/10"
+          }`}
+        >
+          <span className={`block text-sm mb-1 transition-transform duration-200 ${activeTab === t.id ? "scale-110" : "opacity-80"}`}>{t.icon}</span>
+          <span>{t.label}</span>
+        </button>
+      ))}
       </div>
 
       {/* Content Canvas */}
@@ -209,31 +163,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               </div>
             </div>
 
-            {/* Themes Selection */}
-            <div>
-              <h4 className="text-[10px] font-bold text-zinc-500 mb-3 uppercase tracking-wider font-mono">Color Palette</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "light", label: "☀️ Light Paper", bg: "bg-white border-zinc-300 text-zinc-800" },
-                  { id: "sepia", label: "📜 Vintage Sepia", bg: "bg-[#f5ebd6] border-[#e4d6b5] text-[#4a3621]" },
-                  { id: "dark", label: "🌙 Dark Modern", bg: "bg-[#121212] border-zinc-800 text-zinc-300" },
-                  { id: "midnight", label: "🌌 Deep Midnight", bg: "bg-[#080b11] border-blue-950 text-slate-300" },
-                  { id: "forest", label: "🌿 Calming Forest", bg: "bg-[#121b18] border-[#22352e] text-[#cfdfd5]" },
-                ].map((th) => (
-                  <button
-                    key={th.id}
-                    onClick={() => onUpdateSettings({ ...settings, theme: th.id as any })}
-                    className={`px-3 py-2.5 border rounded-xl text-[10px] font-semibold text-left transition-all duration-200 cursor-pointer ${th.bg} ${
-                      settings.theme === th.id
-                        ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-zinc-950 scale-[1.02] shadow-lg shadow-black/20"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    {th.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             {/* Text Sizing sliders */}
             <div className="flex flex-col gap-4 border-t border-zinc-900 pt-5">
@@ -384,7 +314,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 placeholder="Type Japanese/English search query..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-550 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/35 transition-all"
+                className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/35 transition-all"
               />
               <button
                 type="submit"
@@ -434,156 +364,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           </div>
         )}
 
-        {/* --- Tab 4: Bookmarks & Highlights --- */}
-        {activeTab === "bookmarks" && (
-          <div className="flex flex-col gap-6">
-            {/* Bookmarks Section */}
-            <div>
-              <h3 className="text-[10px] font-bold text-zinc-500 mb-3.5 uppercase tracking-wider font-mono">Bookmarks</h3>
-              {bookmarks.length === 0 ? (
-                <p className="text-xs text-zinc-600 italic">No bookmarks on this book.</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {bookmarks.map((bm) => {
-                    const ch = chapters.find(c => c.chapterIndex === bm.chapterIndex);
-                    return (
-                      <div
-                        key={bm.id}
-                        onClick={() => onSelectBookmark(bm)}
-                        className="group flex justify-between items-center p-3.5 border border-zinc-900 hover:border-zinc-800 bg-zinc-900/20 hover:bg-zinc-900/40 rounded-xl cursor-pointer transition-all duration-200"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-mono text-blue-400 font-semibold mb-1">
-                            {ch?.title || `Chapter ${bm.chapterIndex + 1}`} (Page {bm.columnIndex + 1})
-                          </p>
-                          <p className="text-xs text-zinc-400 italic truncate group-hover:text-zinc-300">{bm.textSnippet || "Bookmarked page"}</p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteBookmark(bm.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 ml-2 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer text-xs"
-                          title="Delete Bookmark"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Highlights Section */}
-            <div className="border-t border-zinc-900 pt-5">
-              <h3 className="text-[10px] font-bold text-zinc-500 mb-3.5 uppercase tracking-wider font-mono">Highlights & Notes</h3>
-              {highlights.length === 0 ? (
-                <p className="text-xs text-zinc-650 italic">No text highlights in this book.</p>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {highlights.map((hl) => {
-                    const ch = chapters.find(c => c.chapterIndex === hl.chapterIndex);
-                    const colorClasses = {
-                      yellow: "border-l-4 border-yellow-500 bg-yellow-500/5",
-                      pink: "border-l-4 border-pink-500 bg-pink-500/5",
-                      blue: "border-l-4 border-blue-500 bg-blue-500/5",
-                      green: "border-l-4 border-green-500 bg-green-500/5",
-                    };
-                    return (
-                      <div
-                        key={hl.id}
-                        onClick={() => onSelectHighlight(hl)}
-                        className={`group p-3.5 rounded-xl border border-zinc-900 hover:border-zinc-800 cursor-pointer transition-all duration-200 ${colorClasses[hl.color]}`}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[9px] font-mono text-zinc-500 font-bold">
-                            {ch?.title || `Chapter ${hl.chapterIndex + 1}`}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteHighlight(hl.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded transition cursor-pointer text-xs"
-                            title="Delete Highlight"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                        <p className="text-xs text-zinc-300 leading-relaxed font-serif italic mb-2 break-words">&ldquo;{hl.text}&rdquo;</p>
-                        {hl.note && (
-                          <div className="mt-2 border-t border-zinc-900 pt-2">
-                            <p className="text-[11px] text-zinc-400 leading-relaxed font-mono flex items-start gap-1">
-                              <span className="text-zinc-500 shrink-0 font-sans">📝</span>
-                              <span className="break-words">{hl.note}</span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* --- Tab 5: Vocabulary Notebook --- */}
-        {activeTab === "vocab" && (
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Vocab Notebook</h3>
-              {vocabulary.length > 0 && (
-                <button
-                  onClick={handleExportVocabCSV}
-                  className="px-2.5 py-1 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 rounded-lg text-[9px] font-mono font-bold text-zinc-300 hover:text-white transition-all cursor-pointer shadow-md active:scale-95"
-                  title="Export for Anki import"
-                >
-                  📤 Export CSV
-                </button>
-              )}
-            </div>
-
-            {vocabulary.length === 0 ? (
-              <p className="text-xs text-zinc-650 italic py-6 text-center">No words added to vocabulary notebook yet.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {vocabulary.map((vocab) => (
-                  <div
-                    key={vocab.id}
-                    className="group p-4 border border-zinc-900 bg-zinc-900/10 rounded-xl transition-all duration-200 flex flex-col gap-2 relative hover:border-zinc-800"
-                  >
-                    {/* Delete button */}
-                    <button
-                      onClick={() => onDeleteVocab(vocab.id)}
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-all cursor-pointer text-xs"
-                      title="Remove word"
-                    >
-                      ❌
-                    </button>
-
-                    <div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm font-bold font-serif text-white">{vocab.expression}</span>
-                        {vocab.reading && (
-                          <span className="text-[10px] text-zinc-550 font-mono font-bold">（{vocab.reading}）</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-300 mt-1 leading-relaxed break-words">{vocab.definition}</p>
-                    </div>
-
-                    {vocab.contextSentence && (
-                      <div className="border-t border-zinc-900/60 pt-2 text-[10px] leading-relaxed text-zinc-400 font-serif italic break-words">
-                        &ldquo;{vocab.contextSentence}&rdquo;
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Highlights tab has been removed */}
       </div>
     </aside>
   );

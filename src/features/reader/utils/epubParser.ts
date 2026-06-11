@@ -32,13 +32,17 @@ export interface ParsedBookMetadata {
   author: string;
   coverUrl?: string;
   chapters: Omit<Chapter, "content">[]; // Minimal spine info for metadata
+  opfPath?: string;
 }
 
 /**
  * Extracts basic metadata and chapters metadata from EPUB to store in IndexedDB
  */
-export async function parseEpubMetadata(arrayBuffer: ArrayBuffer): Promise<ParsedBookMetadata> {
-  const zip = await JSZip.loadAsync(arrayBuffer);
+export async function parseEpubMetadata(
+  arrayBuffer: ArrayBuffer,
+  preLoadedZip?: JSZip
+): Promise<ParsedBookMetadata> {
+  const zip = preLoadedZip || await JSZip.loadAsync(arrayBuffer);
   
   // 1. Parse container.xml to locate OPF file
   const containerFile = zip.file("META-INF/container.xml");
@@ -207,6 +211,7 @@ export async function parseEpubMetadata(arrayBuffer: ArrayBuffer): Promise<Parse
     author,
     coverUrl,
     chapters,
+    opfPath,
   };
 }
 
@@ -216,11 +221,13 @@ export async function parseEpubMetadata(arrayBuffer: ArrayBuffer): Promise<Parse
  * Returns clean content and a list of Object URLs created (to be revoked later).
  */
 export async function getChapterContent(
-  arrayBuffer: ArrayBuffer,
+  arrayBufferOrZip: ArrayBuffer | JSZip,
   opfPath: string,
   chapterHref: string
 ): Promise<{ processedHtml: string; objectUrls: string[] }> {
-  const zip = await JSZip.loadAsync(arrayBuffer);
+  const zip = arrayBufferOrZip instanceof JSZip
+    ? arrayBufferOrZip
+    : await JSZip.loadAsync(arrayBufferOrZip);
   const parser = new DOMParser();
   const objectUrls: string[] = [];
   
